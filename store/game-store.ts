@@ -1,12 +1,23 @@
 import { create } from 'zustand';
 
+import { getCatalogPuzzle } from '../constants/puzzle-catalog';
 import { generatePuzzle } from '../engine/puzzle-generator';
 import { scoreForWord } from '../engine/scoring';
 import { validateSelection } from '../engine/validation';
-import type { Difficulty, GameStatus, Position, Puzzle } from '../types/game';
+import { CATALOG_PUZZLES_PER_DIFFICULTY } from '../types/game';
+import type { Difficulty, GameMode, GameStatus, Position, Puzzle } from '../types/game';
+
+interface StartGameParams {
+  difficulty: Difficulty;
+  mode?: GameMode;
+  seed?: number;
+  puzzleNumber?: number;
+}
 
 interface GameState {
   difficulty: Difficulty;
+  mode: GameMode;
+  puzzleNumber: number | null;
   seed: number;
   puzzle: Puzzle | null;
   status: GameStatus;
@@ -15,7 +26,7 @@ interface GameState {
   score: number;
   elapsedSeconds: number;
   lastFoundWord: string | null;
-  startGame: (difficulty: Difficulty, seed?: number) => void;
+  startGame: (params: StartGameParams) => void;
   setSelection: (selection: Position[]) => void;
   clearSelection: () => void;
   finalizeSelection: () => string | null;
@@ -28,6 +39,8 @@ function sortSelectedWords(words: string[]): string[] {
 
 export const useGameStore = create<GameState>((set, get) => ({
   difficulty: 'easy',
+  mode: 'random',
+  puzzleNumber: null,
   seed: Date.now(),
   puzzle: null,
   status: 'idle',
@@ -36,12 +49,21 @@ export const useGameStore = create<GameState>((set, get) => ({
   score: 0,
   elapsedSeconds: 0,
   lastFoundWord: null,
-  startGame(difficulty, seed = Date.now()) {
-    const puzzle = generatePuzzle(difficulty, seed);
+  startGame({ difficulty, mode = 'random', seed = Date.now(), puzzleNumber = 1 }) {
+    const normalizedPuzzleNumber = Math.max(
+      1,
+      Math.min(CATALOG_PUZZLES_PER_DIFFICULTY, Math.floor(puzzleNumber)),
+    );
+    const puzzle =
+      mode === 'catalog'
+        ? getCatalogPuzzle(difficulty, normalizedPuzzleNumber)
+        : generatePuzzle(difficulty, seed);
 
     set({
       difficulty,
-      seed,
+      mode,
+      puzzleNumber: mode === 'catalog' ? normalizedPuzzleNumber : null,
+      seed: puzzle.seed,
       puzzle,
       status: 'playing',
       selection: [],

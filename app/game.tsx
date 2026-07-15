@@ -8,7 +8,8 @@ import { VictoryModal } from '../components/victory-modal';
 import { WordList } from '../components/word-list';
 import { useGameStore } from '../store/game-store';
 import { colors } from '../theme/colors';
-import type { Difficulty } from '../types/game';
+import { CATALOG_PUZZLES_PER_DIFFICULTY } from '../types/game';
+import type { Difficulty, GameMode } from '../types/game';
 
 function normalizeDifficulty(value: string | string[] | undefined): Difficulty {
   const resolved = Array.isArray(value) ? value[0] : value;
@@ -27,12 +28,47 @@ function resolveSeed(value: string | string[] | undefined): number {
   return Number.isFinite(parsed) ? parsed : Date.now();
 }
 
+function normalizeMode(value: string | string[] | undefined): GameMode {
+  const resolved = Array.isArray(value) ? value[0] : value;
+
+  if (resolved === 'catalog') {
+    return 'catalog';
+  }
+
+  return 'random';
+}
+
+function resolvePuzzleNumber(value: string | string[] | undefined): number {
+  const resolved = Array.isArray(value) ? value[0] : value;
+  const parsed = resolved ? Number(resolved) : Number.NaN;
+
+  if (!Number.isFinite(parsed)) {
+    return 1;
+  }
+
+  return Math.max(1, Math.min(CATALOG_PUZZLES_PER_DIFFICULTY, Math.floor(parsed)));
+}
+
+function formatCatalogPuzzleId(difficulty: Difficulty, puzzleNumber: number): string {
+  const prefix = difficulty[0].toUpperCase();
+  const paddedNumber = String(puzzleNumber).padStart(2, '0');
+
+  return `${prefix}-${paddedNumber}`;
+}
+
 export default function GameScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ difficulty?: string; seed?: string }>();
+  const params = useLocalSearchParams<{
+    difficulty?: string;
+    mode?: string;
+    seed?: string;
+    puzzleNumber?: string;
+  }>();
   const { width, height } = useWindowDimensions();
   const difficulty = normalizeDifficulty(params.difficulty);
+  const mode = normalizeMode(params.mode);
   const seed = resolveSeed(params.seed);
+  const puzzleNumber = resolvePuzzleNumber(params.puzzleNumber);
 
   const puzzle = useGameStore((state) => state.puzzle);
   const status = useGameStore((state) => state.status);
@@ -45,16 +81,24 @@ export default function GameScreen() {
   const finalizeSelection = useGameStore((state) => state.finalizeSelection);
   const tick = useGameStore((state) => state.tick);
 
-  const lastSeedRef = useRef<number | null>(null);
+  const lastRunKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (lastSeedRef.current === seed && puzzle?.difficulty === difficulty) {
+    const runKey =
+      mode === 'catalog' ? `${mode}:${difficulty}:${puzzleNumber}` : `${mode}:${difficulty}:${seed}`;
+
+    if (lastRunKeyRef.current === runKey && puzzle?.difficulty === difficulty) {
       return;
     }
 
-    lastSeedRef.current = seed;
-    startGame(difficulty, seed);
-  }, [difficulty, puzzle?.difficulty, seed, startGame]);
+    lastRunKeyRef.current = runKey;
+    startGame({
+      difficulty,
+      mode,
+      seed,
+      puzzleNumber,
+    });
+  }, [difficulty, mode, puzzle?.difficulty, puzzleNumber, seed, startGame]);
 
   useEffect(() => {
     if (status !== 'playing') {
@@ -81,7 +125,12 @@ export default function GameScreen() {
   }, [height, puzzle, width]);
 
   const resetPuzzle = () => {
-    startGame(difficulty, Date.now());
+    startGame({
+      difficulty,
+      mode,
+      seed: mode === 'catalog' ? seed : Date.now(),
+      puzzleNumber,
+    });
   };
 
   const handleSelectionStart = () => {
@@ -109,12 +158,25 @@ export default function GameScreen() {
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerCard}>
           <View style={styles.headerTopRow}>
-            <View style={styles.badge}>
-              <Text selectable style={styles.badgeText}>
-                {difficulty.toUpperCase()}
-              </Text>
+            <View style={styles.badgeGroup}>
+              <View style={styles.badge}>
+                <Text selectable style={styles.badgeText}>
+                  {difficulty.toUpperCase()}
+                </Text>
+              </View>
+              {mode === 'catalog' ? (
+                <View style={styles.badgeSecondary}>
+                  <Text selectable style={styles.badgeSecondaryText}>
+                    {formatCatalogPuzzleId(difficulty, puzzleNumber)}
+                  </Text>
+                </View>
+              ) : null}
             </View>
-            <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.secondaryButton}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.back()}
+              style={styles.secondaryButton}
+            >
               <Text selectable style={styles.secondaryButtonText}>
                 Home
               </Text>
@@ -220,10 +282,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  badgeGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   badge: {
     borderRadius: 999,
     backgroundColor: 'rgba(125,211,252,0.16)',
     paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  badgeSecondary: {
+    borderRadius: 999,
+    backgroundColor: 'rgba(52, 211, 153, 0.16)',
+    paddingHorizontal: 10,
     paddingVertical: 7,
   },
   badgeText: {
@@ -231,6 +304,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1.2,
+  },
+  badgeSecondaryText: {
+    color: colors.success,
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.1,
   },
   secondaryButton: {
     borderRadius: 16,
