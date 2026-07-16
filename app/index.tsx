@@ -1,5 +1,14 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { DifficultyCard } from '../components/difficulty-card';
@@ -7,6 +16,7 @@ import { DIFFICULTY_CONFIG } from '../constants/directions';
 import { colors } from '../theme/colors';
 import { CATALOG_PUZZLES_PER_DIFFICULTY } from '../types/game';
 import type { Difficulty, GameMode } from '../types/game';
+import { parsePuzzleShareCode } from '../utils/puzzle-code';
 
 const DIFFICULTY_DETAILS: Record<Difficulty, { title: string; subtitle: string }> = {
   easy: {
@@ -33,6 +43,7 @@ export default function HomeScreen() {
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [mode, setMode] = useState<GameMode>('random');
   const [catalogPuzzleNumber, setCatalogPuzzleNumber] = useState(1);
+  const [shareCodeInput, setShareCodeInput] = useState('');
 
   const selectedConfig = useMemo(() => DIFFICULTY_CONFIG[difficulty], [difficulty]);
 
@@ -55,6 +66,26 @@ export default function HomeScreen() {
         difficulty,
         mode,
         seed: String(Date.now()),
+      },
+    });
+  };
+
+  const enterShareCode = () => {
+    const parsed = parsePuzzleShareCode(shareCodeInput);
+
+    if (!parsed) {
+      Alert.alert('Invalid code', 'Paste a code like R-easy-1234567890 or C-hard-07.');
+      return;
+    }
+
+    router.push({
+      pathname: '/game',
+      params: {
+        difficulty: parsed.difficulty,
+        mode: parsed.mode,
+        ...(parsed.mode === 'catalog'
+          ? { puzzleNumber: String(parsed.value) }
+          : { seed: String(parsed.value) }),
       },
     });
   };
@@ -87,6 +118,34 @@ export default function HomeScreen() {
             Start puzzle
           </Text>
         </Pressable>
+      </View>
+
+      <View style={[styles.section, { maxWidth: Math.min(width - 32, 760) }]}>
+        <Text selectable style={styles.sectionTitle}>
+          Enter code
+        </Text>
+        <View style={styles.codeCard}>
+          <Text selectable style={styles.codeHint}>
+            Paste a shared puzzle code from Messages or AirDrop.
+          </Text>
+          <TextInput
+            autoCapitalize="none"
+            autoCorrect={false}
+            clearButtonMode="while-editing"
+            placeholder="R-easy-1739991234567"
+            placeholderTextColor={colors.muted}
+            style={styles.codeInput}
+            value={shareCodeInput}
+            onChangeText={setShareCodeInput}
+            onSubmitEditing={enterShareCode}
+            returnKeyType="go"
+          />
+          <Pressable accessibilityRole="button" onPress={enterShareCode} style={styles.joinButton}>
+            <Text selectable style={styles.joinButtonText}>
+              Join puzzle
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={[styles.section, { maxWidth: Math.min(width - 32, 760) }]}>
@@ -341,6 +400,42 @@ const styles = StyleSheet.create({
   },
   modeButtonTextSelected: {
     color: colors.accent,
+  },
+  codeCard: {
+    borderRadius: 24,
+    backgroundColor: colors.panel,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 16,
+    gap: 12,
+  },
+  codeHint: {
+    color: colors.muted,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  codeInput: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    color: colors.text,
+    fontSize: 15,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  joinButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: colors.accentStrong,
+    paddingVertical: 13,
+  },
+  joinButtonText: {
+    color: colors.background,
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   puzzlePickerWrap: {
     borderRadius: 20,

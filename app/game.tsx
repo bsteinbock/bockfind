@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, Share, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
@@ -9,6 +9,7 @@ import { WordList } from '../components/word-list';
 import { useGameStore } from '../store/game-store';
 import { colors } from '../theme/colors';
 import { CATALOG_PUZZLES_PER_DIFFICULTY } from '../types/game';
+import { formatPuzzleShareCode } from '../utils/puzzle-code';
 import type { Difficulty, GameMode } from '../types/game';
 
 function normalizeDifficulty(value: string | string[] | undefined): Difficulty {
@@ -69,6 +70,7 @@ export default function GameScreen() {
   const mode = normalizeMode(params.mode);
   const seed = resolveSeed(params.seed);
   const puzzleNumber = resolvePuzzleNumber(params.puzzleNumber);
+  const shareCode = formatPuzzleShareCode(difficulty, mode, seed, puzzleNumber);
 
   const puzzle = useGameStore((state) => state.puzzle);
   const status = useGameStore((state) => state.status);
@@ -147,6 +149,17 @@ export default function GameScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
   };
 
+  const handleSharePuzzle = async () => {
+    try {
+      await Share.share({
+        message: `BockFind puzzle code: ${shareCode}`,
+        title: 'Share BockFind puzzle',
+      });
+    } catch {
+      // Ignore share sheet cancellations and platform errors.
+    }
+  };
+
   if (!puzzle) {
     return null;
   }
@@ -181,11 +194,25 @@ export default function GameScreen() {
                 Home
               </Text>
             </Pressable>
+            <Pressable accessibilityRole="button" onPress={handleSharePuzzle} style={styles.secondaryButton}>
+              <Text selectable style={styles.secondaryButtonText}>
+                Share
+              </Text>
+            </Pressable>
           </View>
 
           <Text selectable style={styles.headerTitle}>
             Drag to trace the hidden words.
           </Text>
+
+          <View style={styles.shareCard}>
+            <Text selectable style={styles.shareLabel}>
+              Puzzle code
+            </Text>
+            <Text selectable style={styles.shareCode}>
+              {shareCode}
+            </Text>
+          </View>
 
           <View style={styles.statsRow}>
             <Stat label="Score" value={String(score)} />
@@ -321,6 +348,28 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 13,
     fontWeight: '800',
+  },
+  shareCard: {
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 4,
+  },
+  shareLabel: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+  },
+  shareCode: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 0.8,
   },
   headerTitle: {
     color: colors.text,

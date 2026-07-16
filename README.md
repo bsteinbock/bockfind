@@ -1,7 +1,7 @@
 # BockFind
 
 BockFind is a touch-first word-search game built with Expo and React Native.
-Players choose a difficulty, start a seeded puzzle, drag across the grid to form words, and clear the full list as fast as possible for a higher score.
+Players choose a difficulty, start a seeded puzzle or a catalog puzzle, share codes with other players, drag across the grid to form words, and clear the full list as fast as possible for a higher score.
 
 ## Game Overview
 
@@ -47,6 +47,8 @@ BockFind includes four difficulty levels with different board sizes, word counts
 
 - Seeded puzzle generation for reproducible boards
 - Dual puzzle modes: Random and Catalog
+- Native share sheet for sending puzzle codes via Messages or AirDrop
+- Enter code flow for joining a shared puzzle from the home screen
 - Gesture-based letter selection that snaps to valid lines
 - Real-time score, timer, and remaining word count
 - Haptic feedback on selection and successful word finds
@@ -59,6 +61,7 @@ BockFind includes four difficulty levels with different board sizes, word counts
 
 - Generates a fresh puzzle using a timestamp seed
 - Keeps the current dynamic generation behavior
+- Can be shared by code so another player can open the exact same random puzzle
 
 2. Catalog mode
 
@@ -73,6 +76,7 @@ BockFind includes four difficulty levels with different board sizes, word counts
 - Open the app to the home screen
 - Choose puzzle source: Random or Catalog
 - If Catalog is selected, choose puzzle number 1-10
+- Paste a shared code into Enter code to jump straight into a puzzle
 - Review the selected mode stats (grid size, word count, mode)
 - Tap a difficulty card to change the puzzle settings
 - Tap Start puzzle to begin
@@ -82,6 +86,7 @@ BockFind includes four difficulty levels with different board sizes, word counts
 - Touch and drag on the board to begin a word selection
 - The selection line snaps to allowed directions for the current difficulty
 - Release your finger to validate the selected letters
+- Tap Share to open the native share sheet for the current puzzle code
 
 ### 3. Feedback During Play
 
