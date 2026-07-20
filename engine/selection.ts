@@ -9,12 +9,8 @@ export function isSameCell(a: Position | null, b: Position | null): boolean {
   return Boolean(a && b && a.row === b.row && a.col === b.col);
 }
 
-export function getSelectionCell(
-  x: number,
-  y: number,
-  cellSize: number,
-  boardSize: number,
-): Position | null {
+export function getSelectionCell(x: number, y: number, cellSize: number, boardSize: number): Position | null {
+  'worklet';
   const row = Math.floor(y / cellSize);
   const col = Math.floor(x / cellSize);
 
@@ -31,6 +27,7 @@ export function snapSelectionLine(
   difficulty: Difficulty,
   boardSize: number,
 ): Position[] {
+  'worklet';
   const config = DIFFICULTY_CONFIG[difficulty];
   const deltaRow = target.row - start.row;
   const deltaCol = target.col - start.col;
@@ -45,9 +42,7 @@ export function snapSelectionLine(
 
   for (const direction of config.directions) {
     const directionLength = Math.hypot(direction.row, direction.col) || 1;
-    const score =
-      (deltaRow * direction.row + deltaCol * direction.col) /
-      (distance * directionLength);
+    const score = (deltaRow * direction.row + deltaCol * direction.col) / (distance * directionLength);
 
     if (score > bestScore) {
       bestScore = score;

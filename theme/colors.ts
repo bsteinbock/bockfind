@@ -16,3 +16,8 @@ export const colors = {
   found: 'rgba(52, 211, 153, 0.24)',
   shadow: 'rgba(2, 6, 23, 0.45)',
 } as const;
+
+export const foundWordHighlight = {
+  light: '#0f766e',
+  dark: '#5eead4',
+} as const;

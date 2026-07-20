@@ -9,9 +9,10 @@ interface GameCellProps {
   size: number;
   selected: boolean;
   found: boolean;
+  foundColor?: string;
 }
 
-function GameCellView({ letter, size, selected, found }: GameCellProps) {
+function GameCellView({ letter, size, selected, found, foundColor }: GameCellProps) {
   const scale = useSharedValue(1);
 
   useEffect(() => {
@@ -29,13 +30,22 @@ function GameCellView({ letter, size, selected, found }: GameCellProps) {
         {
           width: size,
           height: size,
-          borderRadius: Math.max(12, Math.floor(size * 0.22)),
-          backgroundColor: found ? colors.found : selected ? colors.selection : 'rgba(255,255,255,0.04)',
+          borderRadius: Math.max(10, Math.floor(size * 0.2)),
         },
         animatedStyle,
       ]}
     >
-      <Text selectable style={[styles.letter, { fontSize: Math.max(11, Math.floor(size * 0.42)) }]}>
+      <Text
+        selectable
+        style={[
+          styles.letter,
+          {
+            fontSize: Math.max(11, Math.floor(size * 0.42)),
+            color: found ? (foundColor ?? colors.success) : selected ? colors.accent : colors.text,
+            fontWeight: found ? '900' : '800',
+          },
+        ]}
+      >
         {letter}
       </Text>
     </Animated.View>
@@ -48,8 +58,7 @@ const styles = StyleSheet.create({
   cell: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'transparent',
   },
   letter: {
     color: colors.text,

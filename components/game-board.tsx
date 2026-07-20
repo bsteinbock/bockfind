@@ -1,11 +1,38 @@
-import { useMemo, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useMemo } from 'react';
+import { StyleSheet, View, useColorScheme } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS, useSharedValue } from 'react-native-reanimated';
+import Svg, { Rect } from 'react-native-svg';
 
 import { cellKey, getSelectionCell, snapSelectionLine } from '../engine/selection';
 import { GameCell } from './game-cell';
-import { colors } from '../theme/colors';
+import { colors, foundWordHighlight } from '../theme/colors';
 import type { Difficulty, Position, Puzzle } from '../types/game';
+
+interface FoundWordPill {
+  centerX: number;
+  centerY: number;
+  width: number;
+  height: number;
+  angle: number;
+}
+
+function buildFoundWordPill(start: Position, end: Position, cellSize: number): FoundWordPill {
+  const startX = start.col * cellSize + cellSize / 2;
+  const startY = start.row * cellSize + cellSize / 2;
+  const endX = end.col * cellSize + cellSize / 2;
+  const endY = end.row * cellSize + cellSize / 2;
+  const deltaX = endX - startX;
+  const deltaY = endY - startY;
+
+  return {
+    centerX: (startX + endX) / 2,
+    centerY: (startY + endY) / 2,
+    width: Math.hypot(deltaX, deltaY) + cellSize * 0.92,
+    height: Math.max(16, cellSize * 0.82),
+    angle: (Math.atan2(deltaY, deltaX) * 180) / Math.PI,
+  };
+}
 
 interface GameBoardProps {
   puzzle: Puzzle;
@@ -27,12 +54,15 @@ export function GameBoard({
   onSelectionEnd,
 }: GameBoardProps) {
   const selectedKeys = useMemo(() => new Set(selection.map(cellKey)), [selection]);
-  const anchorRef = useRef<Position | null>(null);
+  const anchor = useSharedValue<Position | null>(null);
+  const colorScheme = useColorScheme();
+  const foundColor = colorScheme === 'light' ? foundWordHighlight.light : foundWordHighlight.dark;
+  const foundWordsSet = useMemo(() => new Set(foundWords), [foundWords]);
   const foundKeySet = useMemo(() => {
     const keySet = new Set<string>();
 
     for (const word of puzzle.words) {
-      if (!foundWords.includes(word.text)) {
+      if (!foundWordsSet.has(word.text)) {
         continue;
       }
 
@@ -42,7 +72,14 @@ export function GameBoard({
     }
 
     return keySet;
-  }, [foundWords, puzzle.words]);
+  }, [foundWordsSet, puzzle.words]);
+  const foundWordPills = useMemo(
+    () =>
+      puzzle.words
+        .filter((word) => foundWordsSet.has(word.text))
+        .map((word) => ({ key: word.text, pill: buildFoundWordPill(word.start, word.end, cellSize) })),
+    [cellSize, foundWordsSet, puzzle.words],
+  );
 
   const boardSize = puzzle.size;
   const boardPixels = cellSize * boardSize;
@@ -53,20 +90,22 @@ export function GameBoard({
       Gesture.Pan()
         .minDistance(0)
         .onBegin((event) => {
+          'worklet';
           const startCell = getSelectionCell(event.x, event.y, cellSize, boardSize);
 
           if (!startCell) {
             return;
           }
 
-          anchorRef.current = startCell;
-          onSelectionStart();
-          onSelectionChange([startCell]);
+          anchor.value = startCell;
+          runOnJS(onSelectionStart)();
+          runOnJS(onSelectionChange)([startCell]);
         })
         .onUpdate((event) => {
-          const anchor = anchorRef.current;
+          'worklet';
+          const startCell = anchor.value;
 
-          if (!anchor) {
+          if (!startCell) {
             return;
           }
 
@@ -76,14 +115,15 @@ export function GameBoard({
             return;
           }
 
-          const nextSelection = snapSelectionLine(anchor, targetCell, difficulty, boardSize);
-          onSelectionChange(nextSelection);
+          const nextSelection = snapSelectionLine(startCell, targetCell, difficulty, boardSize);
+          runOnJS(onSelectionChange)(nextSelection);
         })
         .onEnd(() => {
-          anchorRef.current = null;
-          onSelectionEnd();
+          'worklet';
+          anchor.value = null;
+          runOnJS(onSelectionEnd)();
         }),
-    [boardSize, cellSize, difficulty, onSelectionChange, onSelectionEnd, onSelectionStart],
+    [anchor, boardSize, cellSize, difficulty, onSelectionChange, onSelectionEnd, onSelectionStart],
   );
 
   return (
@@ -94,6 +134,25 @@ export function GameBoard({
       ]}
     >
       <View style={{ width: boardPixels, height: boardPixels }}>
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <Svg height={boardPixels} width={boardPixels}>
+            {foundWordPills.map(({ key, pill }) => (
+              <Rect
+                key={key}
+                x={pill.centerX - pill.width / 2}
+                y={pill.centerY - pill.height / 2}
+                width={pill.width}
+                height={pill.height}
+                rx={pill.height / 2}
+                ry={pill.height / 2}
+                fill="transparent"
+                stroke={foundColor}
+                strokeWidth={2.5}
+                transform={`rotate(${pill.angle} ${pill.centerX} ${pill.centerY})`}
+              />
+            ))}
+          </Svg>
+        </View>
         {puzzle.grid.map((row, rowIndex) => (
           <View key={`row-${rowIndex}`} style={styles.row}>
             {row.map((letter, colIndex) => {
@@ -106,6 +165,7 @@ export function GameBoard({
                   size={cellSize}
                   selected={selectedKeys.has(key)}
                   found={foundKeySet.has(key)}
+                  foundColor={foundColor}
                 />
               );
             })}

@@ -56,5 +56,6 @@ const styles = StyleSheet.create({
   },
   wordFound: {
     color: colors.success,
+    fontWeight: '900',
   },
 });
