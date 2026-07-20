@@ -3,7 +3,6 @@ import {
   Alert,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -11,7 +10,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { KeyboardAvoidingView, KeyboardToolbar } from 'react-native-keyboard-controller';
+import { KeyboardAwareScrollView, KeyboardToolbar } from 'react-native-keyboard-controller';
 
 import { DifficultyCard } from '../components/difficulty-card';
 import { getWordCountForGridSize } from '../constants/directions';
@@ -41,6 +40,7 @@ const DIFFICULTY_DETAILS: Record<Difficulty, { title: string; subtitle: string }
 };
 
 type ActiveSetting = 'grid' | 'difficulty' | null;
+const KEYBOARD_TOOLBAR_HEIGHT = 88;
 
 export default function HomeScreen() {
   const colors = useThemeColors();
@@ -108,8 +108,13 @@ export default function HomeScreen() {
     activeSetting === 'grid' ? 'Choose grid size' : activeSetting === 'difficulty' ? 'Choose difficulty' : '';
 
   return (
-    <KeyboardAvoidingView behavior="padding" style={styles.screen}>
-      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.scrollContent}>
+    <>
+      <KeyboardAwareScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={styles.scrollContent}
+        bottomOffset={KEYBOARD_TOOLBAR_HEIGHT}
+        extraKeyboardSpace={KEYBOARD_TOOLBAR_HEIGHT}
+      >
         <View style={[styles.hero, { maxWidth: Math.min(width - 32, 760) }]}>
           <View style={styles.glowOne} />
           <View style={styles.glowTwo} />
@@ -182,8 +187,7 @@ export default function HomeScreen() {
             </Pressable>
           </View>
         </View>
-      </ScrollView>
-
+      </KeyboardAwareScrollView>
       <KeyboardToolbar>
         <KeyboardToolbar.Done text="Done" />
       </KeyboardToolbar>
@@ -248,7 +252,7 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
-    </KeyboardAvoidingView>
+    </>
   );
 }
 
@@ -280,9 +284,6 @@ function SettingTile({ label, value, onPress }: { label: string; value: string; 
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    screen: {
-      flex: 1,
-    },
     scrollContent: {
       paddingHorizontal: 16,
       paddingTop: 16,
@@ -446,7 +447,7 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
       borderRadius: 16,
       backgroundColor: colors.accentStrong,
-      paddingVertical: 13,
+      paddingVertical: 16,
     },
     joinButtonText: {
       color: colors.onAccent,
