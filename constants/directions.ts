@@ -74,3 +74,9 @@ export const DIFFICULTY_CONFIG = {
     directions: readonly Direction[];
   }
 >;
+
+export function getWordCountForGridSize(difficulty: Difficulty, gridSize: number): number {
+  void difficulty;
+
+  return gridSize;
+}

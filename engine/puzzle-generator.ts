@@ -1,6 +1,6 @@
-import { DIFFICULTY_CONFIG } from '../constants/directions';
+import { DIFFICULTY_CONFIG, getWordCountForGridSize } from '../constants/directions';
 import { WORD_BANK } from '../constants/words';
-import type { Difficulty, Position, Puzzle, PuzzleWord } from '../types/game';
+import type { Difficulty, GridSize, Position, Puzzle, PuzzleWord } from '../types/game';
 import { createSeededRandom } from '../utils/random';
 
 function createEmptyGrid(size: number): Array<Array<string | null>> {
@@ -85,30 +85,39 @@ function placeWord(
   return null;
 }
 
-function fillGrid(grid: Array<Array<string | null>>, random: ReturnType<typeof createSeededRandom>): string[][] {
+function fillGrid(
+  grid: Array<Array<string | null>>,
+  random: ReturnType<typeof createSeededRandom>,
+): string[][] {
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
   return grid.map((row) => row.map((cell) => cell ?? letters[random.int(letters.length)]));
 }
 
-function pickWords(difficulty: Difficulty, random: ReturnType<typeof createSeededRandom>): string[] {
+function pickWords(
+  difficulty: Difficulty,
+  gridSize: number,
+  random: ReturnType<typeof createSeededRandom>,
+): string[] {
   const config = DIFFICULTY_CONFIG[difficulty];
+  const maxWordLength = Math.max(config.minWordLength, Math.min(config.maxWordLength, gridSize));
   const candidates = WORD_BANK.filter(
-    (word) => word.length >= config.minWordLength && word.length <= config.maxWordLength,
+    (word) => word.length >= config.minWordLength && word.length <= maxWordLength,
   );
   const shuffled = random.shuffle(candidates);
+  const resolvedWordCount = getWordCountForGridSize(difficulty, gridSize);
 
-  return shuffled.slice(0, Math.min(config.wordCount, shuffled.length)).map((word) => word.toUpperCase());
+  return shuffled.slice(0, Math.min(resolvedWordCount, shuffled.length)).map((word) => word.toUpperCase());
 }
 
-export function generatePuzzle(difficulty: Difficulty, seed: number): Puzzle {
+export function generatePuzzle(difficulty: Difficulty, seed: number, gridSize: GridSize): Puzzle {
   const config = DIFFICULTY_CONFIG[difficulty];
   const random = createSeededRandom(seed);
 
-  for (let generationAttempt = 0; generationAttempt < 40; generationAttempt += 1) {
-    const grid = createEmptyGrid(config.size);
+  for (let generationAttempt = 0; generationAttempt < 80; generationAttempt += 1) {
+    const grid = createEmptyGrid(gridSize);
     const wordsToPlace = random
-      .shuffle(pickWords(difficulty, random))
+      .shuffle(pickWords(difficulty, gridSize, random))
       .sort((left, right) => right.length - left.length);
     const placements: PuzzleWord[] = [];
     let failed = false;
@@ -133,13 +142,13 @@ export function generatePuzzle(difficulty: Difficulty, seed: number): Puzzle {
     return {
       seed,
       difficulty,
-      size: config.size,
+      size: gridSize,
       grid: filledGrid,
       words: placements.sort((left, right) => left.text.localeCompare(right.text)),
     };
   }
 
-  throw new Error(`Failed to generate a puzzle for ${difficulty}`);
+  throw new Error(`Failed to generate a ${gridSize}x${gridSize} puzzle for ${difficulty}`);
 }
 
 export function getDifficultyWords(difficulty: Difficulty): string[] {

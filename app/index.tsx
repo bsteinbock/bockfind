@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Alert,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,22 +11,24 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { KeyboardAvoidingView, KeyboardToolbar } from 'react-native-keyboard-controller';
 
 import { DifficultyCard } from '../components/difficulty-card';
-import { DIFFICULTY_CONFIG } from '../constants/directions';
-import { colors } from '../theme/colors';
-import { CATALOG_PUZZLES_PER_DIFFICULTY } from '../types/game';
-import type { Difficulty, GameMode } from '../types/game';
+import { getWordCountForGridSize } from '../constants/directions';
+import { useGameStore } from '../store/game-store';
+import { type ThemeColors, useThemeColors } from '../theme/colors';
+import { DEFAULT_GRID_SIZE, GRID_SIZE_OPTIONS } from '../types/game';
+import type { Difficulty, GridSize } from '../types/game';
 import { parsePuzzleShareCode } from '../utils/puzzle-code';
 
 const DIFFICULTY_DETAILS: Record<Difficulty, { title: string; subtitle: string }> = {
   easy: {
     title: 'Easy',
-    subtitle: '10x10 grid with straight words to warm up.',
+    subtitle: 'Straight words to warm up and learn the flow.',
   },
   medium: {
     title: 'Medium',
-    subtitle: 'A bigger grid with diagonals and more hiding spots.',
+    subtitle: 'Diagonals unlock with more hiding spots.',
   },
   hard: {
     title: 'Hard',
@@ -33,39 +36,37 @@ const DIFFICULTY_DETAILS: Record<Difficulty, { title: string; subtitle: string }
   },
   expert: {
     title: 'Expert',
-    subtitle: 'The biggest board with the longest word list.',
+    subtitle: 'Full-direction hunts with the densest word set.',
   },
 };
 
+type ActiveSetting = 'grid' | 'difficulty' | null;
+
 export default function HomeScreen() {
+  const colors = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const { width } = useWindowDimensions();
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
-  const [mode, setMode] = useState<GameMode>('random');
-  const [catalogPuzzleNumber, setCatalogPuzzleNumber] = useState(1);
+  const [gridSize, setGridSize] = useState<GridSize>(DEFAULT_GRID_SIZE);
   const [shareCodeInput, setShareCodeInput] = useState('');
+  const [activeSetting, setActiveSetting] = useState<ActiveSetting>(null);
+  const wordCount = useMemo(() => getWordCountForGridSize(difficulty, gridSize), [difficulty, gridSize]);
+  const activePuzzle = useGameStore((state) => state.puzzle);
+  const activeStatus = useGameStore((state) => state.status);
+  const activeDifficulty = useGameStore((state) => state.difficulty);
+  const activeGridSize = useGameStore((state) => state.gridSize);
+  const activeSeed = useGameStore((state) => state.seed);
 
-  const selectedConfig = useMemo(() => DIFFICULTY_CONFIG[difficulty], [difficulty]);
+  const hasActivePuzzle = activeStatus === 'playing' && Boolean(activePuzzle);
 
   const startGame = () => {
-    if (mode === 'catalog') {
-      router.push({
-        pathname: '/game',
-        params: {
-          difficulty,
-          mode,
-          puzzleNumber: String(catalogPuzzleNumber),
-        },
-      });
-      return;
-    }
-
     router.push({
       pathname: '/game',
       params: {
         difficulty,
-        mode,
         seed: String(Date.now()),
+        gridSize: String(gridSize),
       },
     });
   };
@@ -74,7 +75,7 @@ export default function HomeScreen() {
     const parsed = parsePuzzleShareCode(shareCodeInput);
 
     if (!parsed) {
-      Alert.alert('Invalid code', 'Paste a code like R-easy-1234567890 or C-hard-07.');
+      Alert.alert('Invalid code', 'Paste a code like R-easy-10-1739991234567.');
       return;
     }
 
@@ -82,405 +83,458 @@ export default function HomeScreen() {
       pathname: '/game',
       params: {
         difficulty: parsed.difficulty,
-        mode: parsed.mode,
-        ...(parsed.mode === 'catalog'
-          ? { puzzleNumber: String(parsed.value) }
-          : { seed: String(parsed.value) }),
+        seed: String(parsed.value),
+        gridSize: String(parsed.gridSize),
       },
     });
   };
 
+  const returnToCurrentGame = () => {
+    if (!hasActivePuzzle) {
+      return;
+    }
+
+    router.push({
+      pathname: '/game',
+      params: {
+        difficulty: activeDifficulty,
+        seed: String(activeSeed),
+        gridSize: String(activeGridSize),
+      },
+    });
+  };
+
+  const modalTitle =
+    activeSetting === 'grid' ? 'Choose grid size' : activeSetting === 'difficulty' ? 'Choose difficulty' : '';
+
   return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.scrollContent}>
-      <View style={[styles.hero, { maxWidth: Math.min(width - 32, 760) }]}>
-        <View style={styles.glowOne} />
-        <View style={styles.glowTwo} />
-        <Text selectable style={styles.kicker}>
-          Seek. Spot. Solve.
-        </Text>
-        <Text selectable style={styles.title}>
-          BockFind
-        </Text>
-        <Text selectable style={styles.subtitle}>
-          A tactile word-search game built for phones and iPads. Drag across the grid, snap to clean
-          directions, and clear every hidden word.
-        </Text>
-
-        <View style={styles.statsRow}>
-          <Stat label="Grid" value={`${selectedConfig.size}×${selectedConfig.size}`} />
-          <Stat label="Words" value={`${selectedConfig.wordCount}`} />
-          <Stat label="Difficulty" value={difficulty.toUpperCase()} />
-          <Stat label="Play" value={mode === 'catalog' ? `CATALOG #${catalogPuzzleNumber}` : 'RANDOM'} />
-        </View>
-
-        <Pressable accessibilityRole="button" onPress={startGame} style={styles.primaryButton}>
-          <Text selectable style={styles.primaryButtonText}>
-            Start puzzle
+    <KeyboardAvoidingView behavior="padding" style={styles.screen}>
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.scrollContent}>
+        <View style={[styles.hero, { maxWidth: Math.min(width - 32, 760) }]}>
+          <View style={styles.glowOne} />
+          <View style={styles.glowTwo} />
+          <Text selectable style={styles.kicker}>
+            Seek. Spot. Solve.
           </Text>
-        </Pressable>
-      </View>
-
-      <View style={[styles.section, { maxWidth: Math.min(width - 32, 760) }]}>
-        <Text selectable style={styles.sectionTitle}>
-          Enter code
-        </Text>
-        <View style={styles.codeCard}>
-          <Text selectable style={styles.codeHint}>
-            Paste a shared puzzle code from Messages or AirDrop.
+          <Text selectable style={styles.title}>
+            BockFind
           </Text>
-          <TextInput
-            autoCapitalize="none"
-            autoCorrect={false}
-            clearButtonMode="while-editing"
-            placeholder="R-easy-1739991234567"
-            placeholderTextColor={colors.muted}
-            style={styles.codeInput}
-            value={shareCodeInput}
-            onChangeText={setShareCodeInput}
-            onSubmitEditing={enterShareCode}
-            returnKeyType="go"
-          />
-          <Pressable accessibilityRole="button" onPress={enterShareCode} style={styles.joinButton}>
-            <Text selectable style={styles.joinButtonText}>
-              Join puzzle
-            </Text>
-          </Pressable>
-        </View>
-      </View>
+          <Text selectable style={styles.subtitle}>
+            A word-search game.
+          </Text>
 
-      <View style={[styles.section, { maxWidth: Math.min(width - 32, 760) }]}>
-        <Text selectable style={styles.sectionTitle}>
-          Puzzle source
-        </Text>
-        <View style={styles.modeToggleRow}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setMode('random')}
-            style={[styles.modeButton, mode === 'random' && styles.modeButtonSelected]}
-          >
-            <Text
-              selectable
-              style={[styles.modeButtonText, mode === 'random' && styles.modeButtonTextSelected]}
-            >
-              Random
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setMode('catalog')}
-            style={[styles.modeButton, mode === 'catalog' && styles.modeButtonSelected]}
-          >
-            <Text
-              selectable
-              style={[styles.modeButtonText, mode === 'catalog' && styles.modeButtonTextSelected]}
-            >
-              Catalog
-            </Text>
-          </Pressable>
-        </View>
-      </View>
+          <View style={styles.statsRow}>
+            <SettingTile
+              label="Grid"
+              value={`${gridSize}×${gridSize}`}
+              onPress={() => setActiveSetting('grid')}
+            />
+            <SettingTile
+              label="Difficulty"
+              value={difficulty.toUpperCase()}
+              onPress={() => setActiveSetting('difficulty')}
+            />
+          </View>
 
-      {mode === 'catalog' ? (
+          <Pressable accessibilityRole="button" onPress={startGame} style={styles.primaryButton}>
+            <Text selectable style={styles.primaryButtonText}>
+              Start puzzle
+            </Text>
+          </Pressable>
+
+          {hasActivePuzzle ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={returnToCurrentGame}
+              style={styles.secondaryButton}
+            >
+              <Text selectable style={styles.secondaryButtonText}>
+                Return to current game
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+
         <View style={[styles.section, { maxWidth: Math.min(width - 32, 760) }]}>
           <Text selectable style={styles.sectionTitle}>
-            Choose puzzle (1-{CATALOG_PUZZLES_PER_DIFFICULTY})
+            Join code
           </Text>
-          <View style={styles.puzzlePickerWrap}>
-            {Array.from({ length: CATALOG_PUZZLES_PER_DIFFICULTY }, (_, index) => {
-              const puzzleNumber = index + 1;
-
-              return (
-                <Pressable
-                  key={puzzleNumber}
-                  accessibilityRole="button"
-                  onPress={() => setCatalogPuzzleNumber(puzzleNumber)}
-                  style={[
-                    styles.puzzleChip,
-                    puzzleNumber === catalogPuzzleNumber && styles.puzzleChipSelected,
-                  ]}
-                >
-                  <Text
-                    selectable
-                    style={[
-                      styles.puzzleChipText,
-                      puzzleNumber === catalogPuzzleNumber && styles.puzzleChipTextSelected,
-                    ]}
-                  >
-                    {puzzleNumber}
-                  </Text>
-                </Pressable>
-              );
-            })}
+          <View style={styles.codeCard}>
+            <Text selectable style={styles.codeHint}>
+              Paste a shared puzzle code from your friend.
+            </Text>
+            <TextInput
+              autoCapitalize="none"
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+              placeholder="paste join code here"
+              placeholderTextColor={colors.muted}
+              style={styles.codeInput}
+              value={shareCodeInput}
+              onChangeText={setShareCodeInput}
+              onSubmitEditing={enterShareCode}
+              returnKeyType="go"
+            />
+            <Pressable accessibilityRole="button" onPress={enterShareCode} style={styles.joinButton}>
+              <Text selectable style={styles.joinButtonText}>
+                Play matching puzzle
+              </Text>
+            </Pressable>
           </View>
         </View>
-      ) : null}
+      </ScrollView>
 
-      <View style={[styles.section, { maxWidth: Math.min(width - 32, 760) }]}>
-        <Text selectable style={styles.sectionTitle}>
-          Choose a difficulty
-        </Text>
-        <View style={styles.difficultyList}>
-          {(Object.keys(DIFFICULTY_DETAILS) as Difficulty[]).map((option) => (
-            <DifficultyCard
-              key={option}
-              difficulty={option}
-              title={DIFFICULTY_DETAILS[option].title}
-              subtitle={DIFFICULTY_DETAILS[option].subtitle}
-              selected={difficulty === option}
-              onPress={() => setDifficulty(option)}
-            />
-          ))}
-        </View>
-      </View>
+      <KeyboardToolbar>
+        <KeyboardToolbar.Done text="Done" />
+      </KeyboardToolbar>
 
-      <View style={[styles.section, { maxWidth: Math.min(width - 32, 760) }]}>
-        <Text selectable style={styles.sectionTitle}>
-          How to play
-        </Text>
-        <View style={styles.helpCard}>
-          <Text selectable style={styles.helpText}>
-            Drag across the board to trace a word. The line locks to one of the allowed directions, then the
-            game validates the letters when you lift your finger.
-          </Text>
-          <Text selectable style={styles.helpText}>
-            Found words light up in the board and list. Finish the full list to unlock the victory screen.
-          </Text>
+      <Modal
+        transparent
+        animationType="fade"
+        visible={activeSetting !== null}
+        onRequestClose={() => setActiveSetting(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { maxWidth: Math.min(width - 32, 760) }]}>
+            <View style={styles.modalHeader}>
+              <Text selectable style={styles.modalTitle}>
+                {modalTitle}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setActiveSetting(null)}
+                style={styles.modalCloseButton}
+              >
+                <Text selectable style={styles.modalCloseText}>
+                  Done
+                </Text>
+              </Pressable>
+            </View>
+
+            {activeSetting === 'grid' ? (
+              <View style={styles.pickerWrap}>
+                {GRID_SIZE_OPTIONS.map((option) => (
+                  <Pressable
+                    key={option}
+                    accessibilityRole="button"
+                    onPress={() => setGridSize(option)}
+                    style={[styles.pickerChip, option === gridSize && styles.pickerChipSelected]}
+                  >
+                    <Text
+                      selectable
+                      style={[styles.pickerChipText, option === gridSize && styles.pickerChipTextSelected]}
+                    >
+                      {option}×{option}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+
+            {activeSetting === 'difficulty' ? (
+              <View style={styles.difficultyList}>
+                {(Object.keys(DIFFICULTY_DETAILS) as Difficulty[]).map((option) => (
+                  <DifficultyCard
+                    key={option}
+                    difficulty={option}
+                    title={DIFFICULTY_DETAILS[option].title}
+                    subtitle={DIFFICULTY_DETAILS[option].subtitle}
+                    selected={difficulty === option}
+                    onPress={() => setDifficulty(option)}
+                  />
+                ))}
+              </View>
+            ) : null}
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </Modal>
+    </KeyboardAvoidingView>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function SettingTile({ label, value, onPress }: { label: string; value: string; onPress?: () => void }) {
+  const colors = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
-    <View style={styles.statCard}>
+    <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
+      onPress={onPress}
+      disabled={!onPress}
+      style={styles.statCard}
+    >
       <Text selectable style={styles.statLabel}>
         {label}
       </Text>
       <Text selectable style={styles.statValue}>
         {value}
       </Text>
-    </View>
+      {onPress ? (
+        <Text selectable style={styles.statHint}>
+          Tap to edit
+        </Text>
+      ) : null}
+    </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 36,
-    gap: 20,
-    alignItems: 'center',
-  },
-  hero: {
-    width: '100%',
-    borderRadius: 36,
-    overflow: 'hidden',
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 22,
-    gap: 18,
-    boxShadow: `0 30px 80px ${colors.shadow}`,
-  },
-  glowOne: {
-    position: 'absolute',
-    right: -40,
-    top: -40,
-    width: 160,
-    height: 160,
-    borderRadius: 999,
-    backgroundColor: 'rgba(125, 211, 252, 0.2)',
-  },
-  glowTwo: {
-    position: 'absolute',
-    left: -48,
-    bottom: -56,
-    width: 180,
-    height: 180,
-    borderRadius: 999,
-    backgroundColor: 'rgba(52, 211, 153, 0.16)',
-  },
-  kicker: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-    letterSpacing: 1.8,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 54,
-    fontWeight: '900',
-    letterSpacing: -1.4,
-    lineHeight: 56,
-  },
-  subtitle: {
-    color: colors.muted,
-    fontSize: 15,
-    lineHeight: 22,
-    maxWidth: 580,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  statCard: {
-    minWidth: 96,
-    flexGrow: 1,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 14,
-    gap: 4,
-  },
-  statLabel: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-  },
-  statValue: {
-    color: colors.text,
-    fontSize: 20,
-    fontWeight: '900',
-  },
-  primaryButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 20,
-    backgroundColor: colors.accentStrong,
-    paddingVertical: 16,
-  },
-  primaryButtonText: {
-    color: colors.background,
-    fontSize: 16,
-    fontWeight: '900',
-    letterSpacing: 0.7,
-  },
-  section: {
-    width: '100%',
-    gap: 12,
-  },
-  sectionTitle: {
-    color: colors.text,
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: -0.4,
-  },
-  difficultyList: {
-    gap: 12,
-  },
-  modeToggleRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  modeButton: {
-    flex: 1,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.panel,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-  },
-  modeButtonSelected: {
-    borderColor: colors.accent,
-    backgroundColor: 'rgba(125, 211, 252, 0.14)',
-  },
-  modeButtonText: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  modeButtonTextSelected: {
-    color: colors.accent,
-  },
-  codeCard: {
-    borderRadius: 24,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 16,
-    gap: 12,
-  },
-  codeHint: {
-    color: colors.muted,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  codeInput: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    color: colors.text,
-    fontSize: 15,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  joinButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 16,
-    backgroundColor: colors.accentStrong,
-    paddingVertical: 13,
-  },
-  joinButtonText: {
-    color: colors.background,
-    fontSize: 15,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  puzzlePickerWrap: {
-    borderRadius: 20,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 12,
-    gap: 10,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  puzzleChip: {
-    minWidth: 42,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
-  puzzleChipSelected: {
-    borderColor: colors.accent,
-    backgroundColor: 'rgba(125, 211, 252, 0.16)',
-  },
-  puzzleChipText: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  puzzleChipTextSelected: {
-    color: colors.accent,
-  },
-  helpCard: {
-    borderRadius: 28,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 18,
-    gap: 12,
-  },
-  helpText: {
-    color: colors.muted,
-    fontSize: 14,
-    lineHeight: 22,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    screen: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: 16,
+      paddingTop: 16,
+      paddingBottom: 36,
+      gap: 20,
+      alignItems: 'center',
+    },
+    hero: {
+      width: '100%',
+      borderRadius: 36,
+      overflow: 'hidden',
+      backgroundColor: colors.panel,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 22,
+      gap: 18,
+      boxShadow: `0 30px 80px ${colors.shadow}`,
+    },
+    glowOne: {
+      position: 'absolute',
+      right: -40,
+      top: -40,
+      width: 160,
+      height: 160,
+      borderRadius: 999,
+      backgroundColor: colors.glowAccent,
+    },
+    glowTwo: {
+      position: 'absolute',
+      left: -48,
+      bottom: -56,
+      width: 180,
+      height: 180,
+      borderRadius: 999,
+      backgroundColor: colors.glowSuccess,
+    },
+    kicker: {
+      color: colors.accent,
+      fontSize: 12,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 1.8,
+    },
+    title: {
+      color: colors.text,
+      fontSize: 54,
+      fontWeight: '900',
+      letterSpacing: -1.4,
+      lineHeight: 56,
+    },
+    subtitle: {
+      color: colors.muted,
+      fontSize: 15,
+      lineHeight: 22,
+      maxWidth: 580,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    statCard: {
+      minWidth: 96,
+      flexGrow: 1,
+      borderRadius: 20,
+      backgroundColor: colors.surfaceSubtle,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 14,
+      gap: 4,
+    },
+    statLabel: {
+      color: colors.muted,
+      fontSize: 11,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 1.2,
+    },
+    statValue: {
+      color: colors.text,
+      fontSize: 20,
+      fontWeight: '900',
+    },
+    statHint: {
+      color: colors.accent,
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+    },
+    settingsHint: {
+      color: colors.muted,
+      fontSize: 13,
+      lineHeight: 19,
+    },
+    primaryButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 20,
+      backgroundColor: colors.accentStrong,
+      paddingVertical: 16,
+    },
+    primaryButtonText: {
+      color: colors.onAccent,
+      fontSize: 16,
+      fontWeight: '900',
+      letterSpacing: 0.7,
+    },
+    secondaryButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.accent,
+      backgroundColor: colors.accentTint,
+      paddingVertical: 14,
+    },
+    secondaryButtonText: {
+      color: colors.accent,
+      fontSize: 15,
+      fontWeight: '900',
+      letterSpacing: 0.4,
+    },
+    section: {
+      width: '100%',
+      gap: 12,
+    },
+    sectionTitle: {
+      color: colors.text,
+      fontSize: 22,
+      fontWeight: '900',
+      letterSpacing: -0.4,
+    },
+    difficultyList: {
+      gap: 12,
+    },
+    codeCard: {
+      borderRadius: 24,
+      backgroundColor: colors.panel,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 16,
+      gap: 12,
+    },
+    codeHint: {
+      color: colors.muted,
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    codeInput: {
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceSubtle,
+      color: colors.text,
+      fontSize: 15,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    joinButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 16,
+      backgroundColor: colors.accentStrong,
+      paddingVertical: 13,
+    },
+    joinButtonText: {
+      color: colors.onAccent,
+      fontSize: 15,
+      fontWeight: '900',
+      letterSpacing: 0.5,
+    },
+    modalOverlay: {
+      flex: 1,
+      justifyContent: 'center',
+      padding: 16,
+      backgroundColor: colors.overlay,
+    },
+    modalCard: {
+      width: '100%',
+      alignSelf: 'center',
+      borderRadius: 28,
+      backgroundColor: colors.panel,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 18,
+      gap: 16,
+      boxShadow: `0 30px 80px ${colors.shadow}`,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    modalTitle: {
+      color: colors.text,
+      fontSize: 24,
+      fontWeight: '900',
+      letterSpacing: -0.4,
+    },
+    modalCloseButton: {
+      borderRadius: 14,
+      backgroundColor: colors.surfaceSubtle,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    modalCloseText: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '800',
+    },
+    pickerWrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    pickerChip: {
+      minWidth: 72,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+    },
+    pickerChipSelected: {
+      borderColor: colors.accent,
+      backgroundColor: colors.accentTintStrong,
+    },
+    pickerChipText: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '800',
+    },
+    pickerChipTextSelected: {
+      color: colors.accent,
+    },
+    helpCard: {
+      borderRadius: 28,
+      backgroundColor: colors.panel,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 18,
+      flexDirection: 'row',
+      gap: 12,
+    },
+    helpText: {
+      color: colors.muted,
+      fontSize: 14,
+      lineHeight: 22,
+    },
+  });
+}

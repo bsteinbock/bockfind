@@ -1,7 +1,7 @@
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert';
-export type GameMode = 'random' | 'catalog';
-
-export const CATALOG_PUZZLES_PER_DIFFICULTY = 10;
+export const GRID_SIZE_OPTIONS = [10, 12, 14, 16, 18, 20, 22] as const;
+export type GridSize = (typeof GRID_SIZE_OPTIONS)[number];
+export const DEFAULT_GRID_SIZE: GridSize = 10;
 
 export type GameStatus = 'idle' | 'playing' | 'won';
 

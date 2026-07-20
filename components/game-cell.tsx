@@ -1,8 +1,8 @@
-import { memo, useEffect } from 'react';
+import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
-import { colors } from '../theme/colors';
+import { type ThemeColors, useThemeColors } from '../theme/colors';
 
 interface GameCellProps {
   letter: string;
@@ -13,6 +13,8 @@ interface GameCellProps {
 }
 
 function GameCellView({ letter, size, selected, found, foundColor }: GameCellProps) {
+  const colors = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const scale = useSharedValue(1);
 
   useEffect(() => {
@@ -54,16 +56,18 @@ function GameCellView({ letter, size, selected, found, foundColor }: GameCellPro
 
 export const GameCell = memo(GameCellView);
 
-const styles = StyleSheet.create({
-  cell: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  letter: {
-    color: colors.text,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.75,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    cell: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'transparent',
+    },
+    letter: {
+      color: colors.text,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.75,
+    },
+  });
+}

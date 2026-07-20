@@ -14,6 +14,7 @@
     "react-dom": "19.2.3",
     "react-native": "0.86.0",
     "react-native-gesture-handler": "~2.32.0",
+    "react-native-keyboard-controller": "1.21.9",
     "react-native-reanimated": "4.5.0",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",
@@ -26,8 +27,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "dev": "npx expo start --clear",
-    "test:catalog": "npx tsx scripts/verify-catalog.ts"
+    "dev": "npx expo start --clear"
   },
   "private": true,
   "devDependencies": {

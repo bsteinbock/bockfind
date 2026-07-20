@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
-import { StyleSheet, View, useColorScheme } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS, useSharedValue } from 'react-native-reanimated';
 import Svg, { Rect } from 'react-native-svg';
 
 import { cellKey, getSelectionCell, snapSelectionLine } from '../engine/selection';
 import { GameCell } from './game-cell';
-import { colors, foundWordHighlight } from '../theme/colors';
+import { type ThemeColors, useThemeColors } from '../theme/colors';
 import type { Difficulty, Position, Puzzle } from '../types/game';
 
 interface FoundWordPill {
@@ -53,10 +53,11 @@ export function GameBoard({
   onSelectionStart,
   onSelectionEnd,
 }: GameBoardProps) {
+  const colors = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const selectedKeys = useMemo(() => new Set(selection.map(cellKey)), [selection]);
   const anchor = useSharedValue<Position | null>(null);
-  const colorScheme = useColorScheme();
-  const foundColor = colorScheme === 'light' ? foundWordHighlight.light : foundWordHighlight.dark;
+  const foundColor = colors.foundWordHighlight;
   const foundWordsSet = useMemo(() => new Set(foundWords), [foundWords]);
   const foundKeySet = useMemo(() => {
     const keySet = new Set<string>();
@@ -179,18 +180,20 @@ export function GameBoard({
   );
 }
 
-const styles = StyleSheet.create({
-  board: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
-    boxShadow: `0 24px 60px ${colors.shadow}`,
-  },
-  row: {
-    flexDirection: 'row',
-  },
-  gestureLayer: {
-    backgroundColor: 'transparent',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    board: {
+      backgroundColor: colors.panel,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: 'hidden',
+      boxShadow: `0 24px 60px ${colors.shadow}`,
+    },
+    row: {
+      flexDirection: 'row',
+    },
+    gestureLayer: {
+      backgroundColor: 'transparent',
+    },
+  });
+}
