@@ -169,7 +169,7 @@ export default function HomeScreen() {
 
         <View style={[styles.section, { maxWidth: Math.min(width - 32, 760) }]}>
           <Text selectable style={styles.sectionTitle}>
-            Join code
+            Puzzle code
           </Text>
           <View style={styles.codeCard}>
             <Text selectable style={styles.codeHint}>
@@ -179,7 +179,7 @@ export default function HomeScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               clearButtonMode="while-editing"
-              placeholder="paste join code here"
+              placeholder="paste puzzle code here"
               placeholderTextColor={colors.muted}
               style={styles.codeInput}
               value={shareCodeInput}
@@ -305,7 +305,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.panel,
       borderWidth: 1,
       borderColor: colors.border,
-      paddingTop: 12,
+      padding: 12,
       gap: 18,
       boxShadow: `0 30px 80px ${colors.shadow}`,
     },

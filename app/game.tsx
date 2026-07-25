@@ -1,6 +1,15 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { Pressable, ScrollView, Share, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { GameBoard } from '../components/game-board';
@@ -15,11 +24,11 @@ import type { Difficulty, GridSize } from '../types/game';
 function normalizeDifficulty(value: string | string[] | undefined): Difficulty {
   const resolved = Array.isArray(value) ? value[0] : value;
 
-  if (resolved === 'medium' || resolved === 'hard' || resolved === 'expert') {
+  if (resolved === 'easy' || resolved === 'hard' || resolved === 'expert') {
     return resolved;
   }
 
-  return 'easy';
+  return 'medium';
 }
 
 function resolveSeed(value: string | string[] | undefined): number {
@@ -66,6 +75,8 @@ export default function GameScreen() {
   const tick = useGameStore((state) => state.tick);
 
   const lastRunKeyRef = useRef<string | null>(null);
+  const [scrollViewportHeight, setScrollViewportHeight] = useState(0);
+  const [boardSlotWidth, setBoardSlotWidth] = useState(0);
 
   useEffect(() => {
     const runKey = `${difficulty}:${gridSize}:${seed}`;
@@ -99,12 +110,20 @@ export default function GameScreen() {
       return 24;
     }
 
-    const availableWidth = width - 32;
-    const availableHeight = height * 0.56;
+    const contentWidth = width - 32;
+    const landscapeFallbackWidth = Math.floor((contentWidth - 20) / 2);
+    const availableWidth = isLandscape
+      ? boardSlotWidth > 0
+        ? boardSlotWidth
+        : landscapeFallbackWidth
+      : contentWidth;
+    const landscapeViewportHeight = scrollViewportHeight > 0 ? scrollViewportHeight : height;
+    const availableHeight = isLandscape ? Math.max(0, landscapeViewportHeight - 24) : height * 0.56;
     const rawSize = Math.floor(Math.min(availableWidth, availableHeight) / puzzle.size);
+    const boundedSize = isLandscape ? rawSize : Math.min(36, rawSize);
 
-    return Math.max(14, Math.min(36, rawSize));
-  }, [height, puzzle, width]);
+    return Math.max(14, boundedSize);
+  }, [boardSlotWidth, height, isLandscape, puzzle, scrollViewportHeight, width]);
 
   const resetPuzzle = () => {
     startGame({
@@ -129,14 +148,25 @@ export default function GameScreen() {
   };
 
   const handleSharePuzzle = async () => {
-    try {
-      await Share.share({
-        message: `BockFind puzzle code: ${shareCode}`,
-        title: 'Share BockFind puzzle',
-      });
-    } catch {
-      // Ignore share sheet cancellations and platform errors.
-    }
+    Alert.alert('Share Puzzle Code', undefined, [
+      {
+        text: 'No',
+        style: 'cancel',
+      },
+      {
+        text: 'Yes',
+        onPress: async () => {
+          try {
+            await Share.share({
+              message: `BockFind puzzle code: ${shareCode}`,
+              title: 'Share BockFind puzzle',
+            });
+          } catch {
+            // Ignore share sheet cancellations and platform errors.
+          }
+        },
+      },
+    ]);
   };
 
   if (!puzzle) {
@@ -147,12 +177,39 @@ export default function GameScreen() {
 
   return (
     <View style={styles.screen}>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Share join code"
+              onPress={handleSharePuzzle}
+              style={styles.headerShareButton}
+            >
+              <Text style={styles.headerShareIcon}>↗</Text>
+            </Pressable>
+          ),
+        }}
+      />
+
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
+        onLayout={(event) => {
+          const nextHeight = Math.floor(event.nativeEvent.layout.height);
+
+          setScrollViewportHeight((current) => (current === nextHeight ? current : nextHeight));
+        }}
         contentContainerStyle={[styles.scrollContent, isLandscape && styles.scrollContentLandscape]}
       >
         <View style={[styles.content, isLandscape && styles.contentLandscape]}>
-          <View style={styles.boardWrap}>
+          <View
+            style={[styles.boardWrap, isLandscape && styles.boardWrapLandscape]}
+            onLayout={(event) => {
+              const nextWidth = Math.floor(event.nativeEvent.layout.width);
+
+              setBoardSlotWidth((current) => (current === nextWidth ? current : nextWidth));
+            }}
+          >
             <GameBoard
               puzzle={puzzle}
               cellSize={cellSize}
@@ -172,14 +229,6 @@ export default function GameScreen() {
           </View>
         </View>
       </ScrollView>
-
-      <View style={styles.bottomBar}>
-        <Pressable style={styles.shareButton} onPress={handleSharePuzzle}>
-          <Text selectable style={styles.shareButtonTitle}>
-            Share Join Code
-          </Text>
-        </Pressable>
-      </View>
 
       <VictoryModal
         visible={status === 'won'}
@@ -219,7 +268,6 @@ function createStyles(colors: ThemeColors) {
       gap: 20,
       paddingHorizontal: 16,
       paddingTop: 16,
-      paddingBottom: 116,
     },
     scrollContentLandscape: {
       flexGrow: 1,
@@ -234,35 +282,18 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'flex-start',
       justifyContent: 'center',
     },
-    bottomBar: {
-      paddingHorizontal: 16,
-      paddingBottom: 18,
-      paddingTop: 10,
-      backgroundColor: colors.background,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-    },
-    shareButton: {
-      borderRadius: 18,
-      backgroundColor: colors.accent,
+    headerShareButton: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: 14,
-      paddingHorizontal: 18,
-      gap: 2,
     },
-    shareButtonTitle: {
-      color: colors.onAccent,
-      fontSize: 16,
+    headerShareIcon: {
+      color: colors.text,
+      fontSize: 18,
       fontWeight: '900',
-      letterSpacing: 0.3,
-    },
-    shareButtonCode: {
-      color: colors.onAccent,
-      fontSize: 12,
-      fontWeight: '700',
-      opacity: 0.9,
-      letterSpacing: 0.8,
+      lineHeight: 20,
     },
     headerCard: {
       width: '100%',
@@ -382,15 +413,21 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    boardWrapLandscape: {
+      width: '50%',
+      maxWidth: '50%',
+      flexShrink: 0,
+    },
     section: {
       width: '100%',
       maxWidth: 760,
       gap: 12,
     },
     sectionLandscape: {
+      width: '50%',
       flex: 1,
       minWidth: 240,
-      maxWidth: 360,
+      maxWidth: '50%',
       alignSelf: 'flex-start',
     },
     sectionTitle: {

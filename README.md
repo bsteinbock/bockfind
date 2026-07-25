@@ -40,7 +40,7 @@ BockFind includes four difficulty levels with different direction rules and word
 - Seeded puzzle generation for reproducible boards
 - Player-controlled grid size and word count
 - Native share sheet for sending puzzle codes via Messages or AirDrop
-- Enter code flow for joining a shared puzzle from the home screen
+- Enter code flow for loading a shared puzzle from the home screen
 - Gesture-based letter selection that snaps to valid lines
 - Real-time score, timer, and remaining word count
 - Haptic feedback on selection and successful word finds
