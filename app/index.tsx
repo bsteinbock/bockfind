@@ -8,6 +8,8 @@ import {
   TextInput,
   View,
   useWindowDimensions,
+  useColorScheme,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { KeyboardAwareScrollView, KeyboardToolbar } from 'react-native-keyboard-controller';
@@ -43,6 +45,9 @@ type ActiveSetting = 'grid' | 'difficulty' | null;
 const KEYBOARD_TOOLBAR_HEIGHT = 88;
 
 export default function HomeScreen() {
+  const colorScheme = useColorScheme();
+  const isDarkTheme = colorScheme === 'dark';
+
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
@@ -116,18 +121,18 @@ export default function HomeScreen() {
         extraKeyboardSpace={KEYBOARD_TOOLBAR_HEIGHT}
       >
         <View style={[styles.hero, { maxWidth: Math.min(width - 32, 760) }]}>
-          <View style={styles.glowOne} />
-          <View style={styles.glowTwo} />
-          <Text selectable style={styles.kicker}>
-            Seek. Spot. Solve.
-          </Text>
-          <Text selectable style={styles.title}>
-            BockFind
-          </Text>
+          <View style={styles.titleRow}>
+            <Text style={[styles.title, { color: colors.text }]}>BockFind</Text>
+            <Image
+              source={
+                isDarkTheme ? require('../assets/icon-basic-dark.png') : require('../assets/icon-basic.png')
+              }
+              style={styles.titleIcon}
+            />
+          </View>
           <Text selectable style={styles.subtitle}>
             A word-search game.
           </Text>
-
           <View style={styles.statsRow}>
             <SettingTile
               label="Grid"
@@ -298,41 +303,32 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.panel,
       borderWidth: 1,
       borderColor: colors.border,
-      padding: 22,
+      padding: 12,
       gap: 18,
       boxShadow: `0 30px 80px ${colors.shadow}`,
     },
-    glowOne: {
-      position: 'absolute',
-      right: -40,
-      top: -40,
-      width: 160,
-      height: 160,
-      borderRadius: 999,
-      backgroundColor: colors.glowAccent,
+    title: {
+      fontSize: 44,
+      fontWeight: '700',
     },
-    glowTwo: {
-      position: 'absolute',
-      left: -48,
-      bottom: -56,
-      width: 180,
-      height: 180,
-      borderRadius: 999,
-      backgroundColor: colors.glowSuccess,
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 20,
     },
+    titleIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 8,
+    },
+
     kicker: {
       color: colors.accent,
       fontSize: 12,
       fontWeight: '900',
       textTransform: 'uppercase',
       letterSpacing: 1.8,
-    },
-    title: {
-      color: colors.text,
-      fontSize: 54,
-      fontWeight: '900',
-      letterSpacing: -1.4,
-      lineHeight: 56,
     },
     subtitle: {
       color: colors.muted,
