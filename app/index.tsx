@@ -121,18 +121,20 @@ export default function HomeScreen() {
         extraKeyboardSpace={KEYBOARD_TOOLBAR_HEIGHT}
       >
         <View style={[styles.hero, { maxWidth: Math.min(width - 32, 760) }]}>
-          <View style={styles.titleRow}>
-            <Text style={[styles.title, { color: colors.text }]}>BockFind</Text>
-            <Image
-              source={
-                isDarkTheme ? require('../assets/icon-basic-dark.png') : require('../assets/icon-basic.png')
-              }
-              style={styles.titleIcon}
-            />
+          <View style={styles.headerRow}>
+            <View style={styles.titleRow}>
+              <Text style={[styles.title, { color: colors.text }]}>BockFind</Text>
+              <Image
+                source={
+                  isDarkTheme ? require('../assets/icon-basic-dark.png') : require('../assets/icon-basic.png')
+                }
+                style={styles.titleIcon}
+              />
+            </View>
+            <Text selectable style={styles.subtitle}>
+              A word-search game.
+            </Text>
           </View>
-          <Text selectable style={styles.subtitle}>
-            A word-search game.
-          </Text>
           <View style={styles.statsRow}>
             <SettingTile
               label="Grid"
@@ -303,7 +305,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.panel,
       borderWidth: 1,
       borderColor: colors.border,
-      padding: 12,
+      paddingTop: 12,
       gap: 18,
       boxShadow: `0 30px 80px ${colors.shadow}`,
     },
@@ -316,6 +318,11 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
       gap: 20,
+    },
+    headerRow: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 4,
     },
     titleIcon: {
       width: 48,
@@ -333,7 +340,6 @@ function createStyles(colors: ThemeColors) {
     subtitle: {
       color: colors.muted,
       fontSize: 15,
-      lineHeight: 22,
       maxWidth: 580,
     },
     statsRow: {
