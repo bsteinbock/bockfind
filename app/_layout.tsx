@@ -23,7 +23,13 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="index" options={{ title: 'Back', headerShown: false }} />
-          <Stack.Screen name="game" options={{ title: 'Word Search' }} />
+          <Stack.Screen
+            name="game"
+            options={{
+              title: 'Word Search',
+              headerBackButtonDisplayMode: 'minimal',
+            }}
+          />
         </Stack>
       </KeyboardProvider>
     </GestureHandlerRootView>

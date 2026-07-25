@@ -43,13 +43,13 @@ function resolveGridSize(value: string | string[] | undefined): GridSize {
 export default function GameScreen() {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const router = useRouter();
   const params = useLocalSearchParams<{
     difficulty?: string;
     seed?: string;
     gridSize?: string;
   }>();
   const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
   const difficulty = normalizeDifficulty(params.difficulty);
   const seed = resolveSeed(params.seed);
   const gridSize = resolveGridSize(params.gridSize);
@@ -147,24 +147,29 @@ export default function GameScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.scrollContent}>
-        <View style={styles.boardWrap}>
-          <GameBoard
-            puzzle={puzzle}
-            cellSize={cellSize}
-            selection={selection}
-            foundWords={foundWords}
-            onSelectionChange={setSelection}
-            onSelectionStart={handleSelectionStart}
-            onSelectionEnd={handleSelectionEnd}
-          />
-        </View>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={[styles.scrollContent, isLandscape && styles.scrollContentLandscape]}
+      >
+        <View style={[styles.content, isLandscape && styles.contentLandscape]}>
+          <View style={styles.boardWrap}>
+            <GameBoard
+              puzzle={puzzle}
+              cellSize={cellSize}
+              selection={selection}
+              foundWords={foundWords}
+              onSelectionChange={setSelection}
+              onSelectionStart={handleSelectionStart}
+              onSelectionEnd={handleSelectionEnd}
+            />
+          </View>
 
-        <View style={styles.section}>
-          <Text selectable style={styles.sectionTitle}>
-            Word list
-          </Text>
-          <WordList words={puzzle.words.map((word) => word.text)} foundWords={foundWords} />
+          <View style={[styles.section, isLandscape && styles.sectionLandscape]}>
+            <Text selectable style={styles.sectionTitle}>
+              Word list
+            </Text>
+            <WordList words={puzzle.words.map((word) => word.text)} foundWords={foundWords} />
+          </View>
         </View>
       </ScrollView>
 
@@ -211,11 +216,23 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     scrollContent: {
-      alignItems: 'center',
       gap: 20,
       paddingHorizontal: 16,
       paddingTop: 16,
       paddingBottom: 116,
+    },
+    scrollContentLandscape: {
+      flexGrow: 1,
+    },
+    content: {
+      width: '100%',
+      alignItems: 'center',
+      gap: 20,
+    },
+    contentLandscape: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'center',
     },
     bottomBar: {
       paddingHorizontal: 16,
@@ -369,6 +386,12 @@ function createStyles(colors: ThemeColors) {
       width: '100%',
       maxWidth: 760,
       gap: 12,
+    },
+    sectionLandscape: {
+      flex: 1,
+      minWidth: 240,
+      maxWidth: 360,
+      alignSelf: 'flex-start',
     },
     sectionTitle: {
       color: colors.text,
