@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { generatePuzzle } from '../engine/puzzle-generator';
 import { scoreForWord } from '../engine/scoring';
@@ -13,6 +15,8 @@ interface StartGameParams {
 }
 
 interface GameState {
+  preferredDifficulty: Difficulty;
+  preferredGridSize: GridSize;
   difficulty: Difficulty;
   gridSize: GridSize;
   seed: number;
@@ -23,6 +27,8 @@ interface GameState {
   score: number;
   elapsedSeconds: number;
   lastFoundWord: string | null;
+  setPreferredDifficulty: (difficulty: Difficulty) => void;
+  setPreferredGridSize: (gridSize: GridSize) => void;
   startGame: (params: StartGameParams) => void;
   setSelection: (selection: Position[]) => void;
   clearSelection: () => void;
@@ -34,79 +40,101 @@ function sortSelectedWords(words: string[]): string[] {
   return [...words].sort((left, right) => left.localeCompare(right));
 }
 
-export const useGameStore = create<GameState>((set, get) => ({
-  difficulty: 'easy',
-  gridSize: DEFAULT_GRID_SIZE,
-  seed: Date.now(),
-  puzzle: null,
-  status: 'idle',
-  selection: [],
-  foundWords: [],
-  score: 0,
-  elapsedSeconds: 0,
-  lastFoundWord: null,
-  startGame({ difficulty, seed = Date.now(), gridSize = DEFAULT_GRID_SIZE }) {
-    const puzzle = generatePuzzle(difficulty, seed, gridSize);
-
-    set({
-      difficulty,
-      gridSize,
-      seed: puzzle.seed,
-      puzzle,
-      status: 'playing',
+export const useGameStore = create<GameState>()(
+  persist(
+    (set, get) => ({
+      preferredDifficulty: 'easy',
+      preferredGridSize: DEFAULT_GRID_SIZE,
+      difficulty: 'easy',
+      gridSize: DEFAULT_GRID_SIZE,
+      seed: Date.now(),
+      puzzle: null,
+      status: 'idle',
       selection: [],
       foundWords: [],
       score: 0,
       elapsedSeconds: 0,
       lastFoundWord: null,
-    });
-  },
-  setSelection(selection) {
-    set({ selection });
-  },
-  clearSelection() {
-    set({ selection: [] });
-  },
-  finalizeSelection() {
-    const { puzzle, selection, elapsedSeconds, foundWords } = get();
+      setPreferredDifficulty(preferredDifficulty) {
+        set({ preferredDifficulty });
+      },
+      setPreferredGridSize(preferredGridSize) {
+        set({ preferredGridSize });
+      },
+      startGame({ difficulty, seed = Date.now(), gridSize = DEFAULT_GRID_SIZE }) {
+        const puzzle = generatePuzzle(difficulty, seed, gridSize);
 
-    if (!puzzle || selection.length < 2) {
-      set({ selection: [] });
-      return null;
-    }
+        set({
+          preferredDifficulty: difficulty,
+          preferredGridSize: gridSize,
+          difficulty,
+          gridSize,
+          seed: puzzle.seed,
+          puzzle,
+          status: 'playing',
+          selection: [],
+          foundWords: [],
+          score: 0,
+          elapsedSeconds: 0,
+          lastFoundWord: null,
+        });
+      },
+      setSelection(selection) {
+        set({ selection });
+      },
+      clearSelection() {
+        set({ selection: [] });
+      },
+      finalizeSelection() {
+        const { puzzle, selection, elapsedSeconds, foundWords } = get();
 
-    const result = validateSelection(puzzle, selection, foundWords);
+        if (!puzzle || selection.length < 2) {
+          set({ selection: [] });
+          return null;
+        }
 
-    if (!result.foundWord) {
-      set({ selection: [] });
-      return null;
-    }
+        const result = validateSelection(puzzle, selection, foundWords);
 
-    if (foundWords.includes(result.foundWord)) {
-      set({ selection: [] });
-      return null;
-    }
+        if (!result.foundWord) {
+          set({ selection: [] });
+          return null;
+        }
 
-    const foundWord = result.foundWord;
-    const nextFoundWords = sortSelectedWords([...foundWords, foundWord]);
+        if (foundWords.includes(result.foundWord)) {
+          set({ selection: [] });
+          return null;
+        }
 
-    set((current) => ({
-      foundWords: nextFoundWords,
-      score: current.score + scoreForWord(foundWord, elapsedSeconds, current.foundWords.length),
-      selection: [],
-      lastFoundWord: foundWord,
-      status: puzzle.words.length === nextFoundWords.length ? 'won' : current.status,
-    }));
+        const foundWord = result.foundWord;
+        const nextFoundWords = sortSelectedWords([...foundWords, foundWord]);
 
-    return foundWord;
-  },
-  tick() {
-    const { status } = get();
+        set((current) => ({
+          foundWords: nextFoundWords,
+          score: current.score + scoreForWord(foundWord, elapsedSeconds, current.foundWords.length),
+          selection: [],
+          lastFoundWord: foundWord,
+          status: puzzle.words.length === nextFoundWords.length ? 'won' : current.status,
+        }));
 
-    if (status !== 'playing') {
-      return;
-    }
+        return foundWord;
+      },
+      tick() {
+        const { status } = get();
 
-    set((current) => ({ elapsedSeconds: current.elapsedSeconds + 1 }));
-  },
-}));
+        if (status !== 'playing') {
+          return;
+        }
+
+        set((current) => ({ elapsedSeconds: current.elapsedSeconds + 1 }));
+      },
+    }),
+    {
+      name: 'bockfind-preferences',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({
+        preferredDifficulty: state.preferredDifficulty,
+        preferredGridSize: state.preferredGridSize,
+      }),
+    },
+  ),
+);

@@ -52,11 +52,16 @@ export default function HomeScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const [difficulty, setDifficulty] = useState<Difficulty>('easy');
-  const [gridSize, setGridSize] = useState<GridSize>(DEFAULT_GRID_SIZE);
+  const preferredDifficulty = useGameStore((state) => state.preferredDifficulty);
+  const preferredGridSize = useGameStore((state) => state.preferredGridSize);
+  const setPreferredDifficulty = useGameStore((state) => state.setPreferredDifficulty);
+  const setPreferredGridSize = useGameStore((state) => state.setPreferredGridSize);
   const [shareCodeInput, setShareCodeInput] = useState('');
   const [activeSetting, setActiveSetting] = useState<ActiveSetting>(null);
-  const wordCount = useMemo(() => getWordCountForGridSize(difficulty, gridSize), [difficulty, gridSize]);
+  const wordCount = useMemo(
+    () => getWordCountForGridSize(preferredDifficulty, preferredGridSize),
+    [preferredDifficulty, preferredGridSize],
+  );
   const activePuzzle = useGameStore((state) => state.puzzle);
   const activeStatus = useGameStore((state) => state.status);
   const activeDifficulty = useGameStore((state) => state.difficulty);
@@ -69,9 +74,9 @@ export default function HomeScreen() {
     router.push({
       pathname: '/game',
       params: {
-        difficulty,
+        difficulty: preferredDifficulty,
         seed: String(Date.now()),
-        gridSize: String(gridSize),
+        gridSize: String(preferredGridSize),
       },
     });
   };
@@ -138,12 +143,12 @@ export default function HomeScreen() {
           <View style={styles.statsRow}>
             <SettingTile
               label="Grid"
-              value={`${gridSize}×${gridSize}`}
+              value={`${preferredGridSize}×${preferredGridSize}`}
               onPress={() => setActiveSetting('grid')}
             />
             <SettingTile
               label="Difficulty"
-              value={difficulty.toUpperCase()}
+              value={preferredDifficulty.toUpperCase()}
               onPress={() => setActiveSetting('difficulty')}
             />
           </View>
@@ -228,12 +233,15 @@ export default function HomeScreen() {
                   <Pressable
                     key={option}
                     accessibilityRole="button"
-                    onPress={() => setGridSize(option)}
-                    style={[styles.pickerChip, option === gridSize && styles.pickerChipSelected]}
+                    onPress={() => setPreferredGridSize(option)}
+                    style={[styles.pickerChip, option === preferredGridSize && styles.pickerChipSelected]}
                   >
                     <Text
                       selectable
-                      style={[styles.pickerChipText, option === gridSize && styles.pickerChipTextSelected]}
+                      style={[
+                        styles.pickerChipText,
+                        option === preferredGridSize && styles.pickerChipTextSelected,
+                      ]}
                     >
                       {option}×{option}
                     </Text>
@@ -250,8 +258,8 @@ export default function HomeScreen() {
                     difficulty={option}
                     title={DIFFICULTY_DETAILS[option].title}
                     subtitle={DIFFICULTY_DETAILS[option].subtitle}
-                    selected={difficulty === option}
-                    onPress={() => setDifficulty(option)}
+                    selected={preferredDifficulty === option}
+                    onPress={() => setPreferredDifficulty(option)}
                   />
                 ))}
               </View>
