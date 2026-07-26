@@ -119,7 +119,12 @@ export default function GameScreen() {
       : contentWidth;
     const landscapeViewportHeight = scrollViewportHeight > 0 ? scrollViewportHeight : height;
     const availableHeight = isLandscape ? Math.max(0, landscapeViewportHeight - 24) : height * 0.56;
-    const rawSize = Math.floor(Math.min(availableWidth, availableHeight) / puzzle.size);
+    const shouldFillLandscapeHeight =
+      isLandscape && availableHeight > 0 && contentWidth / availableHeight >= 2;
+    const boardPixels = shouldFillLandscapeHeight
+      ? availableHeight
+      : Math.min(availableWidth, availableHeight);
+    const rawSize = Math.floor(boardPixels / puzzle.size);
     const boundedSize = isLandscape ? rawSize : Math.min(36, rawSize);
 
     return Math.max(14, boundedSize);
@@ -290,7 +295,7 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
     },
     headerShareIcon: {
-      color: colors.text,
+      color: colors.shareIcon,
       fontSize: 18,
       fontWeight: '900',
       lineHeight: 20,

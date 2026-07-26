@@ -18,8 +18,8 @@ import { DifficultyCard } from '../components/difficulty-card';
 import { getWordCountForGridSize } from '../constants/directions';
 import { useGameStore } from '../store/game-store';
 import { type ThemeColors, useThemeColors } from '../theme/colors';
-import { DEFAULT_GRID_SIZE, GRID_SIZE_OPTIONS } from '../types/game';
-import type { Difficulty, GridSize } from '../types/game';
+import { GRID_SIZE_OPTIONS } from '../types/game';
+import type { Difficulty } from '../types/game';
 import { parsePuzzleShareCode } from '../utils/puzzle-code';
 
 const DIFFICULTY_DETAILS: Record<Difficulty, { title: string; subtitle: string }> = {
@@ -33,11 +33,11 @@ const DIFFICULTY_DETAILS: Record<Difficulty, { title: string; subtitle: string }
   },
   hard: {
     title: 'Hard',
-    subtitle: 'Backwards words, tougher overlaps, and sharper focus.',
+    subtitle: 'Backwards words, tougher overlaps.',
   },
   expert: {
     title: 'Expert',
-    subtitle: 'Full-direction hunts with the densest word set.',
+    subtitle: 'Full-direction hunts.',
   },
 };
 
@@ -58,10 +58,6 @@ export default function HomeScreen() {
   const setPreferredGridSize = useGameStore((state) => state.setPreferredGridSize);
   const [shareCodeInput, setShareCodeInput] = useState('');
   const [activeSetting, setActiveSetting] = useState<ActiveSetting>(null);
-  const wordCount = useMemo(
-    () => getWordCountForGridSize(preferredDifficulty, preferredGridSize),
-    [preferredDifficulty, preferredGridSize],
-  );
   const activePuzzle = useGameStore((state) => state.puzzle);
   const activeStatus = useGameStore((state) => state.status);
   const activeDifficulty = useGameStore((state) => state.difficulty);
@@ -155,7 +151,7 @@ export default function HomeScreen() {
 
           <Pressable accessibilityRole="button" onPress={startGame} style={styles.primaryButton}>
             <Text selectable style={styles.primaryButtonText}>
-              Start puzzle
+              Create new puzzle
             </Text>
           </Pressable>
 
@@ -166,7 +162,7 @@ export default function HomeScreen() {
               style={styles.secondaryButton}
             >
               <Text selectable style={styles.secondaryButtonText}>
-                Return to current game
+                Return to current puzzle
               </Text>
             </Pressable>
           ) : null}
@@ -178,7 +174,7 @@ export default function HomeScreen() {
           </Text>
           <View style={styles.codeCard}>
             <Text selectable style={styles.codeHint}>
-              Paste a shared puzzle code from your friend.
+              Paste a shared puzzle code to play matching puzzle.
             </Text>
             <TextInput
               autoCapitalize="none"

@@ -27,6 +27,7 @@ export type ThemeColors = {
   glowAccent: string;
   glowSuccess: string;
   overlay: string;
+  shareIcon: string;
 };
 
 export const lightColors: ThemeColors = {
@@ -56,6 +57,7 @@ export const lightColors: ThemeColors = {
   glowAccent: 'rgba(14, 165, 233, 0.14)',
   glowSuccess: 'rgba(45, 212, 191, 0.12)',
   overlay: 'rgba(15, 23, 42, 0.18)',
+  shareIcon: '#000000',
 } as const;
 
 export const darkColors: ThemeColors = {
@@ -85,6 +87,7 @@ export const darkColors: ThemeColors = {
   glowAccent: 'rgba(125, 211, 252, 0.2)',
   glowSuccess: 'rgba(52, 211, 153, 0.16)',
   overlay: 'rgba(2, 6, 23, 0.72)',
+  shareIcon: '#000000',
 } as const;
 
 export function getThemeColors(colorScheme: ReturnType<typeof useColorScheme>): ThemeColors {
