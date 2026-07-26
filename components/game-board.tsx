@@ -131,7 +131,11 @@ export function GameBoard({
     <View
       style={[
         styles.board,
-        { width: boardPixels, height: boardPixels, borderRadius: Math.max(20, Math.floor(cellSize * 0.5)) },
+        {
+          width: boardPixels,
+          height: boardPixels,
+          borderRadius: Math.max(10, Math.floor(cellSize * 0.5) / 2),
+        },
       ]}
     >
       <View style={{ width: boardPixels, height: boardPixels }}>

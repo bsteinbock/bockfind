@@ -76,7 +76,6 @@ export default function GameScreen() {
 
   const lastRunKeyRef = useRef<string | null>(null);
   const [scrollViewportHeight, setScrollViewportHeight] = useState(0);
-  const [boardSlotWidth, setBoardSlotWidth] = useState(0);
 
   useEffect(() => {
     const runKey = `${difficulty}:${gridSize}:${seed}`;
@@ -111,25 +110,23 @@ export default function GameScreen() {
     }
 
     const contentWidth = width - 32;
-    const landscapeFallbackWidth = Math.floor((contentWidth - 20) / 2);
-    const availableWidth = isLandscape
-      ? boardSlotWidth > 0
-        ? boardSlotWidth
-        : landscapeFallbackWidth
-      : contentWidth;
     const landscapeViewportHeight = scrollViewportHeight > 0 ? scrollViewportHeight : height;
-    const availableHeight = isLandscape ? Math.max(0, landscapeViewportHeight - 24) : height * 0.56;
-    const shouldFillLandscapeHeight =
-      isLandscape && availableHeight > 0 && contentWidth / availableHeight >= 2;
-    const boardPixels = shouldFillLandscapeHeight
-      ? availableHeight
-      : Math.min(availableWidth, availableHeight);
+    const landscapeAvailableHeight = Math.max(0, landscapeViewportHeight - 24);
+    const reservedWordListWidth = Math.min(320, Math.max(220, Math.floor(contentWidth * 0.34)));
+    const landscapeMaxBoardWidth = Math.max(0, contentWidth - 20 - reservedWordListWidth);
+    const landscapeBoardWidthCap = Math.floor(contentWidth * 0.64);
+    const landscapeBoardPixels =
+      landscapeMaxBoardWidth > 0
+        ? Math.min(landscapeAvailableHeight, landscapeMaxBoardWidth, landscapeBoardWidthCap)
+        : landscapeAvailableHeight;
+    const boardPixels = isLandscape ? landscapeBoardPixels : Math.min(contentWidth, height * 0.56);
     const rawSize = Math.floor(boardPixels / puzzle.size);
     const boundedSize = isLandscape ? rawSize : Math.min(36, rawSize);
 
     return Math.max(14, boundedSize);
-  }, [boardSlotWidth, height, isLandscape, puzzle, scrollViewportHeight, width]);
+  }, [height, isLandscape, puzzle, scrollViewportHeight, width]);
 
+  const boardPixelSize = (puzzle?.size ?? DEFAULT_GRID_SIZE) * cellSize;
   const resetPuzzle = () => {
     startGame({
       difficulty,
@@ -207,23 +204,28 @@ export default function GameScreen() {
         contentContainerStyle={[styles.scrollContent, isLandscape && styles.scrollContentLandscape]}
       >
         <View style={[styles.content, isLandscape && styles.contentLandscape]}>
-          <View
-            style={[styles.boardWrap, isLandscape && styles.boardWrapLandscape]}
-            onLayout={(event) => {
-              const nextWidth = Math.floor(event.nativeEvent.layout.width);
-
-              setBoardSlotWidth((current) => (current === nextWidth ? current : nextWidth));
-            }}
-          >
-            <GameBoard
-              puzzle={puzzle}
-              cellSize={cellSize}
-              selection={selection}
-              foundWords={foundWords}
-              onSelectionChange={setSelection}
-              onSelectionStart={handleSelectionStart}
-              onSelectionEnd={handleSelectionEnd}
-            />
+          <View style={[styles.boardWrap, isLandscape && styles.boardWrapLandscape]}>
+            <View
+              style={
+                isLandscape
+                  ? {
+                      width: boardPixelSize,
+                      minWidth: boardPixelSize,
+                      maxWidth: boardPixelSize,
+                    }
+                  : undefined
+              }
+            >
+              <GameBoard
+                puzzle={puzzle}
+                cellSize={cellSize}
+                selection={selection}
+                foundWords={foundWords}
+                onSelectionChange={setSelection}
+                onSelectionStart={handleSelectionStart}
+                onSelectionEnd={handleSelectionEnd}
+              />
+            </View>
           </View>
 
           <View style={[styles.section, isLandscape && styles.sectionLandscape]}>
@@ -284,8 +286,8 @@ function createStyles(colors: ThemeColors) {
     },
     contentLandscape: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'center',
+      alignItems: 'stretch',
+      justifyContent: 'flex-start',
     },
     headerShareButton: {
       width: 34,
@@ -419,9 +421,10 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
     },
     boardWrapLandscape: {
-      width: '50%',
-      maxWidth: '50%',
+      width: 'auto',
       flexShrink: 0,
+      justifyContent: 'flex-start',
+      alignItems: 'center',
     },
     section: {
       width: '100%',
@@ -429,10 +432,8 @@ function createStyles(colors: ThemeColors) {
       gap: 12,
     },
     sectionLandscape: {
-      width: '50%',
       flex: 1,
-      minWidth: 240,
-      maxWidth: '50%',
+      minWidth: 220,
       alignSelf: 'flex-start',
     },
     sectionTitle: {
