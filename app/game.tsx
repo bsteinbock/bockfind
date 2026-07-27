@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   Share,
@@ -188,7 +189,14 @@ export default function GameScreen() {
               onPress={handleSharePuzzle}
               style={styles.headerShareButton}
             >
-              <Text style={styles.headerShareIcon}>↗</Text>
+              <Text
+                style={[
+                  styles.headerShareIcon,
+                  Platform.OS === 'android' && { color: colors.text, fontSize: 24 },
+                ]}
+              >
+                ↗
+              </Text>
             </Pressable>
           ),
         }}
