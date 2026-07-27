@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Alert,
+  Platform,
   Modal,
   Pressable,
   StyleSheet,
@@ -121,7 +122,13 @@ export default function HomeScreen() {
         bottomOffset={KEYBOARD_TOOLBAR_HEIGHT}
         extraKeyboardSpace={KEYBOARD_TOOLBAR_HEIGHT}
       >
-        <View style={[styles.hero, { maxWidth: Math.min(width - 32, 760) }]}>
+        <View
+          style={[
+            styles.hero,
+            { maxWidth: Math.min(width - 32, 760) },
+            Platform.OS === 'android' && { marginTop: 16 },
+          ]}
+        >
           <View style={styles.headerRow}>
             <View style={styles.titleRow}>
               <Text style={[styles.title, { color: colors.text }]}>BockFind</Text>
