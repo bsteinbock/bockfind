@@ -126,7 +126,7 @@ export default function HomeScreen() {
           style={[
             styles.hero,
             { maxWidth: Math.min(width - 32, 760) },
-            Platform.OS === 'android' && { marginTop: 16 },
+            Platform.OS === 'android' && { marginTop: 26 },
           ]}
         >
           <View style={styles.headerRow}>
