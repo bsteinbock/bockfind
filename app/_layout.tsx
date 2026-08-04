@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -5,11 +6,16 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { applyOtaUpdateIfAvailable } from '../utils/ota-updates';
 import { useThemeColors } from '../theme/colors';
 
 export default function RootLayout() {
   const colors = useThemeColors();
   const colorScheme = useColorScheme();
+
+  useEffect(() => {
+    applyOtaUpdateIfAvailable();
+  }, []);
 
   return (
     <SafeAreaProvider>

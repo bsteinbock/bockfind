@@ -114,6 +114,34 @@ npm run android
 npm run ios
 npm run web
 npm run dev
+npm run start:dev
+npm run start:prod
+```
+
+## App Variants
+
+BockFind supports two app variants via the `APP_VARIANT` environment variable:
+
+- `development`: app name `BockFind Dev`, bundle/package `com.bsteinbk.bockfind.dev`, scheme `bockfind-dev`
+- `production`: app name `BockFind`, bundle/package `com.bsteinbk.bockfind`, scheme `bockfind`
+
+Variant is resolved in `app.config.ts` and is set automatically for EAS build profiles:
+
+- `development` profile -> `APP_VARIANT=development`, update channel `development`
+- `preview` profile -> `APP_VARIANT=production`, update channel `preview`
+- `production` profile -> `APP_VARIANT=production`, update channel `production`
+
+## OTA Updates (EAS Update)
+
+The app is configured for Expo OTA updates with `expo-updates` and an EAS update URL.
+On app launch, release builds check for updates, download them when available, and reload automatically.
+
+Publish OTA updates by channel:
+
+```bash
+npm run update:development
+npm run update:preview
+npm run update:production
 ```
 
 ## Tech Stack
