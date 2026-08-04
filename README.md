@@ -1,13 +1,14 @@
 # BockFind
 
 BockFind is a touch-first word-search game built with Expo and React Native.
-Players choose a difficulty, grid size, and word count, share seeded puzzles with other players, drag across the grid to form words, and clear the full list as fast as possible for a higher score.
+Players choose a difficulty and grid size, share seeded puzzles with other players, drag across the grid to form words, and clear the full list as fast as possible for a higher score.
 
 ## Game Overview
 
 - Genre: Word search
 - Platforms: iOS, Android, and web via Expo
 - Objective: Find every hidden word in the puzzle grid
+- Round end: The puzzle ends when all listed words are found
 - Progress tracking: Found words are highlighted in both the board and the word list
 - Win state: A victory modal appears when all words are found
 
@@ -38,11 +39,12 @@ BockFind includes four difficulty levels with different direction rules and word
 ## Core Features
 
 - Seeded puzzle generation for reproducible boards
-- Player-controlled grid size and word count
+- Player-controlled difficulty and grid size
 - Native share sheet for sending puzzle codes via Messages or AirDrop
-- Enter code flow for loading a shared puzzle from the home screen
+- Home-screen puzzle code entry for loading a shared puzzle
+- Return-to-current-puzzle shortcut from the home screen
 - Gesture-based letter selection that snaps to valid lines
-- Real-time score, timer, and remaining word count
+- Real-time score and elapsed timer
 - Haptic feedback on selection and successful word finds
 - Responsive board sizing for phones and tablets
 - Play-again flow from the victory modal
@@ -50,19 +52,20 @@ BockFind includes four difficulty levels with different direction rules and word
 ## Puzzle Setup
 
 - Grid size defaults to 10x10 and can be adjusted before each run
-- Word count can be tuned within the limits supported by the selected difficulty and grid size
-- Difficulty controls direction rules and word-length ranges, not board size
+- Word count is generated from grid size (10x10 -> 10 words, 22x22 -> 22 words)
+- Difficulty controls direction rules and word-length ranges
 - Shared puzzle codes preserve the exact random puzzle settings and seed
+- Puzzle code format: `R-<difficulty>-<gridSize>-<seed>`
 
 ## How A User Interacts With The Game
 
 ### 1. Start Screen
 
 - Open the app to the home screen
-- Tap the Grid, Words, or Difficulty tiles to open a settings modal
+- Tap the Grid or Difficulty tiles to open a selection modal
 - Paste a shared code into Enter code to jump straight into a puzzle
-- Review the selected puzzle stats in the hero panel
-- Tap Start puzzle to begin
+- Tap Create new puzzle to begin
+- If a puzzle is already active, tap Return to current puzzle
 
 ### 2. In-Game Controls
 
@@ -84,6 +87,11 @@ BockFind includes four difficulty levels with different direction rules and word
 - Find all listed words to complete the puzzle
 - View the completion summary (words found, time, score)
 - Tap Play again to generate a new puzzle
+
+## Data And Persistence
+
+- Preferred difficulty and preferred grid size are stored locally on-device
+- No account, login, or cloud sync is required
 
 ## Running The Project
 
