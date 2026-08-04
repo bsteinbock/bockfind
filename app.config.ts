@@ -24,7 +24,7 @@ export default (): ExpoConfig => {
   const isDevelopment = variant === 'development';
   const enableLegalPlugin = shouldEnableReactNativeLegalPlugin();
 
-  const appName = isDevelopment ? 'BockFind Dev' : 'BockFind';
+  const appName = isDevelopment ? 'BockFind (dev)' : 'BockFind';
   const bundleIdentifier = isDevelopment ? 'com.bsteinbk.bockfind.dev' : 'com.bsteinbk.bockfind';
   const androidPackage = isDevelopment ? 'com.bsteinbk.bockfind.dev' : 'com.bsteinbk.bockfind';
   const scheme = isDevelopment ? 'bockfind-dev' : 'bockfind';
