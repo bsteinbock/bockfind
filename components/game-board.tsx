@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import { useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Rect } from 'react-native-svg';
@@ -87,46 +87,43 @@ export function GameBoard({
   const boardPixels = cellSize * boardSize;
   const difficulty = puzzle.difficulty as Difficulty;
 
-  const gesture = useMemo(
-    () =>
-      Gesture.Pan()
-        .minDistance(0)
-        .onBegin((event) => {
-          'worklet';
-          const startCell = getSelectionCell(event.x, event.y, cellSize, boardSize);
+  const gesture = usePanGesture({
+    minDistance: 0,
+    onBegin: (event) => {
+      'worklet';
+      const startCell = getSelectionCell(event.x, event.y, cellSize, boardSize);
 
-          if (!startCell) {
-            return;
-          }
+      if (!startCell) {
+        return;
+      }
 
-          anchor.value = startCell;
-          scheduleOnRN(onSelectionStart);
-          scheduleOnRN(onSelectionChange, [startCell]);
-        })
-        .onUpdate((event) => {
-          'worklet';
-          const startCell = anchor.value;
+      anchor.value = startCell;
+      scheduleOnRN(onSelectionStart);
+      scheduleOnRN(onSelectionChange, [startCell]);
+    },
+    onUpdate: (event) => {
+      'worklet';
+      const startCell = anchor.value;
 
-          if (!startCell) {
-            return;
-          }
+      if (!startCell) {
+        return;
+      }
 
-          const targetCell = getSelectionCell(event.x, event.y, cellSize, boardSize);
+      const targetCell = getSelectionCell(event.x, event.y, cellSize, boardSize);
 
-          if (!targetCell) {
-            return;
-          }
+      if (!targetCell) {
+        return;
+      }
 
-          const nextSelection = snapSelectionLine(startCell, targetCell, difficulty, boardSize);
-          scheduleOnRN(onSelectionChange, nextSelection);
-        })
-        .onEnd(() => {
-          'worklet';
-          anchor.value = null;
-          scheduleOnRN(onSelectionEnd);
-        }),
-    [anchor, boardSize, cellSize, difficulty, onSelectionChange, onSelectionEnd, onSelectionStart],
-  );
+      const nextSelection = snapSelectionLine(startCell, targetCell, difficulty, boardSize);
+      scheduleOnRN(onSelectionChange, nextSelection);
+    },
+    onFinalize: () => {
+      'worklet';
+      anchor.value = null;
+      scheduleOnRN(onSelectionEnd);
+    },
+  });
 
   return (
     <View
