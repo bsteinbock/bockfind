@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { KeyboardAwareScrollView, KeyboardToolbar } from 'react-native-keyboard-controller';
+import { ReactNativeLegal } from 'react-native-legal';
 
 import { DifficultyCard } from '../components/difficulty-card';
 import { getWordCountForGridSize } from '../constants/directions';
@@ -111,6 +112,14 @@ export default function HomeScreen() {
     });
   };
 
+  const showLicenses = () => {
+    try {
+      ReactNativeLegal.launchLicenseListScreen('Open Source Licenses');
+    } catch {
+      Alert.alert('Unavailable', 'Open source licenses are not available in this runtime.');
+    }
+  };
+
   const modalTitle =
     activeSetting === 'grid' ? 'Choose grid size' : activeSetting === 'difficulty' ? 'Choose difficulty' : '';
 
@@ -201,6 +210,14 @@ export default function HomeScreen() {
               </Text>
             </Pressable>
           </View>
+        </View>
+
+        <View style={[styles.legalSection, { maxWidth: Math.min(width - 32, 760) }]}>
+          <Pressable accessibilityRole="button" onPress={showLicenses} style={styles.legalButton}>
+            <Text selectable style={styles.legalButtonText}>
+              Show Licenses
+            </Text>
+          </Pressable>
         </View>
       </KeyboardAwareScrollView>
       <KeyboardToolbar>
@@ -423,11 +440,30 @@ function createStyles(colors: ThemeColors) {
       width: '100%',
       gap: 12,
     },
+    legalSection: {
+      width: '100%',
+      paddingTop: 2,
+    },
     sectionTitle: {
       color: colors.text,
       fontSize: 22,
       fontWeight: '900',
       letterSpacing: -0.4,
+    },
+    legalButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceSubtle,
+      paddingVertical: 14,
+    },
+    legalButtonText: {
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: '800',
+      letterSpacing: 0.3,
     },
     difficultyList: {
       gap: 12,
