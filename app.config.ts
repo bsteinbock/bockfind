@@ -6,9 +6,23 @@ function resolveVariant(): AppVariant {
   return process.env.APP_VARIANT === 'development' ? 'development' : 'production';
 }
 
+function shouldEnableReactNativeLegalPlugin(): boolean {
+  const argv = process.argv.join(' ');
+
+  // The legal plugin writes native artifacts under ios/android. Only run it when
+  // we are in an actual native build context.
+  return (
+    process.env.EAS_BUILD === '1' ||
+    argv.includes('prebuild') ||
+    argv.includes('run:android') ||
+    argv.includes('run:ios')
+  );
+}
+
 export default (): ExpoConfig => {
   const variant = resolveVariant();
   const isDevelopment = variant === 'development';
+  const enableLegalPlugin = shouldEnableReactNativeLegalPlugin();
 
   const appName = isDevelopment ? 'BockFind Dev' : 'BockFind';
   const bundleIdentifier = isDevelopment ? 'com.bsteinbk.bockfind.dev' : 'com.bsteinbk.bockfind';
@@ -41,7 +55,7 @@ export default (): ExpoConfig => {
     web: {
       favicon: './assets/favicon.png',
     },
-    plugins: ['expo-router', 'expo-status-bar', 'react-native-legal'],
+    plugins: ['expo-router', 'expo-status-bar', ...(enableLegalPlugin ? ['react-native-legal'] : [])],
     extra: {
       router: {},
       appVariant: variant,
