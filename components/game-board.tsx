@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS, useSharedValue } from 'react-native-reanimated';
+import { useSharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Rect } from 'react-native-svg';
 
 import { cellKey, getSelectionCell, snapSelectionLine } from '../engine/selection';
@@ -99,8 +100,8 @@ export function GameBoard({
           }
 
           anchor.value = startCell;
-          runOnJS(onSelectionStart)();
-          runOnJS(onSelectionChange)([startCell]);
+          scheduleOnRN(onSelectionStart);
+          scheduleOnRN(onSelectionChange, [startCell]);
         })
         .onUpdate((event) => {
           'worklet';
@@ -117,12 +118,12 @@ export function GameBoard({
           }
 
           const nextSelection = snapSelectionLine(startCell, targetCell, difficulty, boardSize);
-          runOnJS(onSelectionChange)(nextSelection);
+          scheduleOnRN(onSelectionChange, nextSelection);
         })
         .onEnd(() => {
           'worklet';
           anchor.value = null;
-          runOnJS(onSelectionEnd)();
+          scheduleOnRN(onSelectionEnd);
         }),
     [anchor, boardSize, cellSize, difficulty, onSelectionChange, onSelectionEnd, onSelectionStart],
   );
