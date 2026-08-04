@@ -213,7 +213,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={[styles.legalSection, { maxWidth: Math.min(width - 32, 760) }]}>
-          <Pressable accessibilityRole="button" onPress={showLicenses} style={styles.legalButton}>
+          <Pressable accessibilityRole="button" onPress={showLicenses} style={styles.legalLinkPressable}>
             <Text selectable style={styles.legalButtonText}>
               Show Licenses
             </Text>
@@ -443,6 +443,7 @@ function createStyles(colors: ThemeColors) {
     legalSection: {
       width: '100%',
       paddingTop: 2,
+      alignItems: 'center',
     },
     sectionTitle: {
       color: colors.text,
@@ -450,20 +451,16 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '900',
       letterSpacing: -0.4,
     },
-    legalButton: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.surfaceSubtle,
-      paddingVertical: 14,
+    legalLinkPressable: {
+      paddingVertical: 4,
+      paddingHorizontal: 2,
     },
     legalButtonText: {
-      color: colors.text,
-      fontSize: 15,
-      fontWeight: '800',
-      letterSpacing: 0.3,
+      color: colors.accent,
+      fontSize: 14,
+      fontWeight: '700',
+      textDecorationLine: 'underline',
+      textAlign: 'center',
     },
     difficultyList: {
       gap: 12,

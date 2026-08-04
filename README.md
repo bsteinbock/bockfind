@@ -118,6 +118,14 @@ npm run start:dev
 npm run start:prod
 ```
 
+If you hit a Worklets mismatch error (for example `Mismatch between JavaScript code version and Worklets Babel plugin version`), restart Metro with a clean cache:
+
+```bash
+npm run start:dev
+```
+
+The route warnings like `Route "./_layout.tsx" is missing the required default export` can appear as a follow-on effect when the bundle crashes early; they should clear once the Worklets mismatch is resolved.
+
 ## App Variants
 
 BockFind supports two app variants via the `APP_VARIANT` environment variable:
@@ -130,6 +138,9 @@ Variant is resolved in `app.config.ts` and is set automatically for EAS build pr
 - `development` profile -> `APP_VARIANT=development`, update channel `development`
 - `preview` profile -> `APP_VARIANT=production`, update channel `preview`
 - `production` profile -> `APP_VARIANT=production`, update channel `production`
+
+`react-native-legal` is enabled only during native build contexts (`prebuild`, `run:android`, `run:ios`, or EAS build).
+This avoids local `expo config`/config-introspection failures when `android/` or `ios/` folders are not present in a managed workflow.
 
 ## OTA Updates (EAS Update)
 
