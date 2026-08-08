@@ -56,7 +56,7 @@ export const lightColors: ThemeColors = {
   successTint: 'rgba(15, 118, 110, 0.12)',
   glowAccent: 'rgba(14, 165, 233, 0.14)',
   glowSuccess: 'rgba(45, 212, 191, 0.12)',
-  overlay: 'rgba(15, 23, 42, 0.18)',
+  overlay: 'rgba(15, 23, 42, 0.48)',
   shareIcon: '#000000',
 } as const;
 

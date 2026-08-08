@@ -11,6 +11,8 @@ interface VictoryModalProps {
   wordsFound: number;
   totalWords: number;
   onPlayAgain: () => void;
+  onShare: () => void;
+  onDone: () => void;
 }
 
 export function VictoryModal({
@@ -20,6 +22,8 @@ export function VictoryModal({
   wordsFound,
   totalWords,
   onPlayAgain,
+  onShare,
+  onDone,
 }: VictoryModalProps) {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -35,13 +39,37 @@ export function VictoryModal({
             Nice work.
           </Text>
           <Text selectable style={styles.summary}>
-            You found {wordsFound} of {totalWords} words in {elapsedSeconds}s for a score of {score}.
+            You completed the puzzle in {elapsedSeconds}s.
           </Text>
-          <Pressable accessibilityRole="button" onPress={onPlayAgain} style={styles.button}>
-            <Text selectable style={styles.buttonText}>
-              Play again
-            </Text>
-          </Pressable>
+          <View style={styles.actions}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onPlayAgain}
+              style={[styles.button, styles.secondaryButton]}
+            >
+              <Text selectable style={styles.secondaryButtonText}>
+                Play again
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onShare}
+              style={[styles.button, styles.secondaryButton]}
+            >
+              <Text selectable style={styles.secondaryButtonText}>
+                Share result
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onDone}
+              style={[styles.button, styles.secondaryButton]}
+            >
+              <Text selectable style={styles.secondaryButtonText}>
+                Done
+              </Text>
+            </Pressable>
+          </View>
         </Animated.View>
       </Animated.View>
     </Modal>
@@ -86,15 +114,36 @@ function createStyles(colors: ThemeColors) {
       fontSize: 15,
       lineHeight: 22,
     },
+    actions: {
+      gap: 10,
+    },
     button: {
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 18,
-      backgroundColor: colors.accentStrong,
       paddingVertical: 14,
+    },
+    primaryButton: {
+      backgroundColor: colors.accentStrong,
+    },
+    secondaryButton: {
+      backgroundColor: colors.surfaceSubtle,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    tertiaryButton: {
+      backgroundColor: colors.panel,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     buttonText: {
       color: colors.onAccent,
+      fontSize: 15,
+      fontWeight: '900',
+      letterSpacing: 0.5,
+    },
+    secondaryButtonText: {
+      color: colors.text,
       fontSize: 15,
       fontWeight: '900',
       letterSpacing: 0.5,

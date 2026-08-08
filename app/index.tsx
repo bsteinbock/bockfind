@@ -13,6 +13,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { KeyboardAwareScrollView, KeyboardToolbar } from 'react-native-keyboard-controller';
 import { ReactNativeLegal } from 'react-native-legal';
 
@@ -60,6 +61,7 @@ export default function HomeScreen() {
   const setPreferredGridSize = useGameStore((state) => state.setPreferredGridSize);
   const [shareCodeInput, setShareCodeInput] = useState('');
   const [activeSetting, setActiveSetting] = useState<ActiveSetting>(null);
+  const [aboutVisible, setAboutVisible] = useState(false);
   const activePuzzle = useGameStore((state) => state.puzzle);
   const activeStatus = useGameStore((state) => state.status);
   const activeDifficulty = useGameStore((state) => state.difficulty);
@@ -67,6 +69,7 @@ export default function HomeScreen() {
   const activeSeed = useGameStore((state) => state.seed);
 
   const hasActivePuzzle = activeStatus === 'playing' && Boolean(activePuzzle);
+  const appVersion = Constants.expoConfig?.version ?? 'Unknown';
 
   const startGame = () => {
     router.push({
@@ -204,18 +207,24 @@ export default function HomeScreen() {
               onSubmitEditing={enterShareCode}
               returnKeyType="go"
             />
-            <Pressable accessibilityRole="button" onPress={enterShareCode} style={styles.joinButton}>
-              <Text selectable style={styles.joinButtonText}>
-                Play matching puzzle
-              </Text>
-            </Pressable>
+            {shareCodeInput.trim().length > 0 ? (
+              <Pressable accessibilityRole="button" onPress={enterShareCode} style={styles.joinButton}>
+                <Text selectable style={styles.joinButtonText}>
+                  Play matching puzzle
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
 
         <View style={[styles.legalSection, { maxWidth: Math.min(width - 32, 760) }]}>
-          <Pressable accessibilityRole="button" onPress={showLicenses} style={styles.legalLinkPressable}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setAboutVisible(true)}
+            style={styles.legalLinkPressable}
+          >
             <Text selectable style={styles.legalButtonText}>
-              Show Licenses
+              About BockFind
             </Text>
           </Pressable>
         </View>
@@ -223,6 +232,70 @@ export default function HomeScreen() {
       <KeyboardToolbar>
         <KeyboardToolbar.Done text="Done" />
       </KeyboardToolbar>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={aboutVisible}
+        onRequestClose={() => setAboutVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { maxWidth: Math.min(width - 32, 760) }]}>
+            <View style={styles.modalHeader}>
+              <Text selectable style={styles.modalTitle}>
+                About
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setAboutVisible(false)}
+                style={styles.modalCloseButton}
+              >
+                <Text selectable style={styles.modalCloseText}>
+                  Close
+                </Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.aboutHero}>
+              <View style={styles.aboutTextBlock}>
+                <Text selectable style={styles.aboutAppName}>
+                  BockFind
+                </Text>
+                <Text selectable style={styles.aboutVersion}>
+                  Version {appVersion}
+                </Text>
+              </View>
+              <Image
+                source={
+                  isDarkTheme ? require('../assets/icon-basic-dark.png') : require('../assets/icon-basic.png')
+                }
+                style={styles.aboutIcon}
+              />
+            </View>
+
+            <View style={styles.aboutSection}>
+              <Text selectable style={styles.aboutSectionTitle}>
+                How to Play
+              </Text>
+              <Text selectable style={styles.aboutBody}>
+                Choose your puzzle size. Select a difficulty level. Create a new puzzle or enter a shared
+                puzzle code to play a matching puzzle.
+              </Text>
+
+              <Text selectable style={styles.aboutBody}>
+                Find every hidden word by tracing letters in any direction. Tap and drag across the grid, then
+                use the word list to track what you have found.
+              </Text>
+            </View>
+
+            <Pressable accessibilityRole="button" onPress={showLicenses} style={styles.legalLinkPressable}>
+              <Text selectable style={styles.legalButtonText}>
+                Show OSS Licenses
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         transparent
@@ -582,6 +655,57 @@ function createStyles(colors: ThemeColors) {
       color: colors.muted,
       fontSize: 14,
       lineHeight: 22,
+    },
+    aboutHero: {
+      flexDirection: 'row',
+      gap: 14,
+      paddingVertical: 6,
+    },
+    aboutIcon: {
+      width: 64,
+      height: 64,
+      borderRadius: 14,
+    },
+    aboutTextBlock: {
+      gap: 4,
+    },
+    aboutAppName: {
+      color: colors.text,
+      fontSize: 24,
+      fontWeight: '900',
+      letterSpacing: -0.4,
+    },
+    aboutVersion: {
+      color: colors.muted,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    aboutSection: {
+      gap: 8,
+      paddingTop: 4,
+    },
+    aboutSectionTitle: {
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: '900',
+    },
+    aboutBody: {
+      color: colors.muted,
+      fontSize: 14,
+      lineHeight: 22,
+    },
+    licenseButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 16,
+      backgroundColor: colors.accentStrong,
+      paddingVertical: 14,
+    },
+    licenseButtonText: {
+      color: colors.onAccent,
+      fontSize: 15,
+      fontWeight: '900',
+      letterSpacing: 0.5,
     },
   });
 }

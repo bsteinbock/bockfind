@@ -10,7 +10,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { GameBoard } from '../components/game-board';
@@ -53,6 +53,7 @@ function resolveGridSize(value: string | string[] | undefined): GridSize {
 export default function GameScreen() {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const router = useRouter();
   const params = useLocalSearchParams<{
     difficulty?: string;
     seed?: string;
@@ -60,6 +61,7 @@ export default function GameScreen() {
   }>();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
+  const isFocused = useIsFocused();
   const difficulty = normalizeDifficulty(params.difficulty);
   const seed = resolveSeed(params.seed);
   const gridSize = resolveGridSize(params.gridSize);
@@ -77,6 +79,7 @@ export default function GameScreen() {
 
   const lastRunKeyRef = useRef<string | null>(null);
   const [scrollViewportHeight, setScrollViewportHeight] = useState(0);
+  const [isSharing, setIsSharing] = useState(false);
 
   useEffect(() => {
     const runKey = `${difficulty}:${gridSize}:${seed}`;
@@ -94,7 +97,7 @@ export default function GameScreen() {
   }, [difficulty, gridSize, puzzle?.difficulty, seed, startGame]);
 
   useEffect(() => {
-    if (status !== 'playing') {
+    if (!isFocused || status !== 'playing' || isSharing) {
       return undefined;
     }
 
@@ -103,7 +106,7 @@ export default function GameScreen() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [status, tick]);
+  }, [isFocused, isSharing, status, tick]);
 
   const cellSize = useMemo(() => {
     if (!puzzle) {
@@ -151,10 +154,13 @@ export default function GameScreen() {
   };
 
   const handleSharePuzzle = async () => {
+    setIsSharing(true);
+
     Alert.alert('Share Puzzle Code', undefined, [
       {
         text: 'No',
         style: 'cancel',
+        onPress: () => setIsSharing(false),
       },
       {
         text: 'Yes',
@@ -166,10 +172,35 @@ export default function GameScreen() {
             });
           } catch {
             // Ignore share sheet cancellations and platform errors.
+          } finally {
+            setIsSharing(false);
           }
         },
       },
     ]);
+  };
+
+  const handleShareResult = async () => {
+    if (!puzzle) {
+      return;
+    }
+
+    setIsSharing(true);
+
+    try {
+      await Share.share({
+        message: `I found ${foundWords.length} words and completed this BockFind puzzle in ${elapsedSeconds}s. See if you can beat my time using puzzle code: ${shareCode}`,
+        title: 'BockFind result',
+      });
+    } catch {
+      // Ignore share sheet cancellations and platform errors.
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleDone = () => {
+    router.replace('/');
   };
 
   if (!puzzle) {
@@ -252,6 +283,8 @@ export default function GameScreen() {
         wordsFound={foundWords.length}
         totalWords={puzzle.words.length}
         onPlayAgain={resetPuzzle}
+        onShare={handleShareResult}
+        onDone={handleDone}
       />
     </View>
   );
