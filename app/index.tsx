@@ -23,7 +23,7 @@ import { useGameStore } from '../store/game-store';
 import { type ThemeColors, useThemeColors } from '../theme/colors';
 import { GRID_SIZE_OPTIONS } from '../types/game';
 import type { Difficulty } from '../types/game';
-import { parsePuzzleShareCode } from '../utils/puzzle-code';
+import { parsePuzzleShareCode, extractPuzzleCode } from '../utils/puzzle-code';
 
 const DIFFICULTY_DETAILS: Record<Difficulty, { title: string; subtitle: string }> = {
   easy: {
@@ -89,6 +89,8 @@ export default function HomeScreen() {
       Alert.alert('Invalid code', 'Paste a code like R-easy-10-1739991234567.');
       return;
     }
+
+    setShareCodeInput('');
 
     router.push({
       pathname: '/game',
@@ -204,6 +206,12 @@ export default function HomeScreen() {
               style={styles.codeInput}
               value={shareCodeInput}
               onChangeText={setShareCodeInput}
+              onBlur={() => {
+                const extracted = extractPuzzleCode(shareCodeInput);
+                if (extracted) {
+                  setShareCodeInput(extracted);
+                }
+              }}
               onSubmitEditing={enterShareCode}
               returnKeyType="go"
             />
